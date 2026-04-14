@@ -13,16 +13,4 @@ void main() {
       expect(sandbox.denoExecutable, equals('/usr/local/bin/deno'));
     });
   });
-
-  group('DenoResult', () {
-    test('success is true when exitCode is 0', () {
-      const result = DenoResult(stdout: 'ok', stderr: '', exitCode: 0);
-      expect(result.success, isTrue);
-    });
-
-    test('success is false when exitCode is non-zero', () {
-      const result = DenoResult(stdout: '', stderr: 'err', exitCode: 1);
-      expect(result.success, isFalse);
-    });
-  });
 }

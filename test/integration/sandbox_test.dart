@@ -40,7 +40,6 @@ void main() {
   });
 
   tearDown(() {
-    // Clean up temp dirs.
     final outDir = Directory(tempOutputDir);
     if (outDir.existsSync()) outDir.deleteSync(recursive: true);
     final dbDir = Directory(tempDbDir);
@@ -52,24 +51,28 @@ void main() {
 
   group('Allowed operations', () {
     test('script receives positional args', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('hello.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         args: ['arg1', 'arg2', 'arg3'],
+        writeInTerminal: output.write,
       );
-      expect(result.success, isTrue);
-      expect(result.stdout.trim(), equals('["arg1","arg2","arg3"]'));
+      expect(exitCode, equals(0));
+      expect(output.toString().trim(), equals('["arg1","arg2","arg3"]'));
     });
 
     test('script can write to outputDir', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('write_file.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         args: [tempOutputDir],
+        writeInTerminal: output.write,
       );
-      expect(result.success, isTrue);
+      expect(exitCode, equals(0));
       final outputFile = File(p.join(tempOutputDir, 'test_output.txt'));
       expect(outputFile.existsSync(), isTrue);
       expect(outputFile.readAsStringSync(), equals('hello from sandbox'));
@@ -78,67 +81,79 @@ void main() {
 
   group('Denied operations', () {
     test('script CANNOT read outside allowed dirs', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('read_denied.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
+        writeInTerminal: output.write,
       );
-      expect(result.success, isFalse);
-      expect(result.stderr, contains('NotCapable'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
 
     test('script CANNOT spawn subprocesses', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('run_denied.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
+        writeInTerminal: output.write,
       );
-      expect(result.success, isFalse);
-      expect(result.stderr, contains('NotCapable'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
 
     test('script CANNOT load FFI outside databasePath', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('ffi_outside_db.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
+        writeInTerminal: output.write,
       );
-      expect(result.success, isFalse);
-      expect(result.stderr, contains('NotCapable'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
 
     test('script CANNOT fetch non-allowed hosts', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('net_denied.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
+        writeInTerminal: output.write,
       );
-      expect(result.success, isFalse);
-      expect(result.stderr, contains('NotCapable'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
   });
 
   group('--deny-sys toggle', () {
     test('script CANNOT access sys info with allowSys=false', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('sys_denied.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         allowSys: false,
+        writeInTerminal: output.write,
       );
-      expect(result.success, isFalse);
-      expect(result.stderr, contains('NotCapable'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
 
     test('script CAN access sys info with allowSys=true', () async {
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('sys_denied.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         allowSys: true,
+        writeInTerminal: output.write,
       );
-      expect(result.success, isTrue);
-      expect(result.stdout, contains('hostname:'));
+      expect(exitCode, equals(0));
+      expect(output.toString(), contains('hostname:'));
     });
   });
 
@@ -148,32 +163,31 @@ void main() {
         p.absolute(p.join('test', 'data', 'migrations')),
       );
 
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('quiverdb_open_close.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         args: [tempDbDir, migrationsDir],
         additionalReadPaths: [migrationsDir],
         allowSys: true,
+        writeInTerminal: output.write,
       );
 
-      // Print stderr for debugging if it fails.
-      if (!result.success) {
+      if (exitCode != 0) {
         // ignore: avoid_print
-        print('stderr: ${result.stderr}');
+        print('output: ${output.toString()}');
       }
 
-      expect(result.success, isTrue, reason: result.stderr);
-      expect(result.stdout, contains('database opened successfully'));
-      expect(result.stdout, contains('database closed successfully'));
+      expect(exitCode, equals(0), reason: output.toString());
+      expect(output.toString(), contains('database opened successfully'));
+      expect(output.toString(), contains('database closed successfully'));
     });
   }, timeout: Timeout(Duration(minutes: 2)));
 
   group('Third-party FFI restriction', () {
     test('third-party FFI package is blocked without Deno cache in FFI scope',
         () async {
-      // Resolve the real Deno cache dir so we can grant read access (for npm
-      // import resolution) while keeping it OUT of the FFI allow list.
       final denoInfo = Process.runSync(
         'deno',
         ['info', '--json'],
@@ -189,19 +203,19 @@ void main() {
 
       expect(realDenoDir, isNotNull, reason: 'Could not detect Deno cache dir');
 
-      // Grant --allow-read to the real cache (so npm: imports resolve),
-      // but set denoCacheDir to a fake path so --allow-ffi excludes it.
-      final result = await sandbox.execute(
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
         scriptPath: fixturePath('ffi_thirdparty_blocked.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         additionalReadPaths: [realDenoDir!],
         denoCacheDir: '/fake/deno/cache',
         allowSys: true,
+        writeInTerminal: output.write,
       );
 
-      expect(result.success, isFalse);
-      expect(result.stderr, contains('NotCapable'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
   }, timeout: Timeout(Duration(minutes: 2)));
 }

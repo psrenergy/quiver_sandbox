@@ -4,22 +4,6 @@ import 'dart:io';
 import 'permission_builder.dart';
 import 'sandbox_config.dart';
 
-/// The result of running a Deno script.
-class DenoResult {
-  final String stdout;
-  final String stderr;
-  final int exitCode;
-
-  const DenoResult({
-    required this.stdout,
-    required this.stderr,
-    required this.exitCode,
-  });
-
-  /// Whether the script exited successfully (exit code 0).
-  bool get success => exitCode == 0;
-}
-
 /// Executes Deno scripts inside a permission-scoped sandbox.
 class QuiverSandbox {
   /// Path to the Deno executable. Defaults to `"deno"` (assumes it's on PATH).
@@ -33,6 +17,9 @@ class QuiverSandbox {
 
   /// Executes a Deno script in a sandboxed process.
   ///
+  /// Output (stdout and stderr) is streamed to [writeInTerminal] in real-time.
+  /// Returns the process exit code.
+  ///
   /// The sandbox enforces:
   /// - Read access scoped to [databasePath], script directory, and [additionalReadPaths]
   /// - Write access scoped to [databasePath] and [outputDir]
@@ -40,10 +27,11 @@ class QuiverSandbox {
   /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
   /// - Subprocess spawning denied
   /// - System info access denied by default (toggle via [allowSys])
-  Future<DenoResult> execute({
+  Future<int> execute({
     required String scriptPath,
     required String databasePath,
     required String outputDir,
+    required void Function(String) writeInTerminal,
     List<String> args = const [],
     List<String> additionalReadPaths = const [],
     List<String> allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
@@ -74,17 +62,16 @@ class QuiverSandbox {
       ...config.args,
     ];
 
-    final process = await Process.run(
+    final process = await Process.start(
       denoExecutable,
       arguments,
       runInShell: Platform.isWindows,
     );
 
-    return DenoResult(
-      stdout: process.stdout as String,
-      stderr: process.stderr as String,
-      exitCode: process.exitCode,
-    );
+    process.stdout.transform(const Utf8Decoder()).listen(writeInTerminal);
+    process.stderr.transform(const Utf8Decoder()).listen(writeInTerminal);
+
+    return process.exitCode;
   }
 
   String? _cachedDenoCacheDir;

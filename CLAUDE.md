@@ -14,7 +14,7 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 
 - `lib/src/sandbox_config.dart` — `SandboxConfig`: all inputs (scriptPath, databasePath, outputDir, args, permissions)
 - `lib/src/permission_builder.dart` — `PermissionBuilder`: assembles Deno `--allow-*`/`--deny-*` flags from config
-- `lib/src/deno_runner.dart` — `QuiverSandbox`: executes scripts via `Process.run`, auto-detects Deno cache dir; `DenoResult`: stdout/stderr/exitCode
+- `lib/src/deno_runner.dart` — `QuiverSandbox`: executes scripts via `Process.start`, streams output to `writeInTerminal` callback, returns exit code; auto-detects Deno cache dir
 
 ## Deno Permission Model
 
