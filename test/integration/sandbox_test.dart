@@ -11,6 +11,7 @@ void main() {
   late String fixturesDir;
   late String tempOutputDir;
   late String tempDbDir;
+  late String migrationsDir;
   late QuiverSandbox sandbox;
 
   setUpAll(() {
@@ -27,6 +28,8 @@ void main() {
         Directory.systemTemp.createTempSync('quiver_sandbox_out_').path;
     tempDbDir =
         Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
+    migrationsDir =
+        p.normalize(p.absolute(p.join('test', 'data', 'migrations')));
     sandbox = QuiverSandbox();
   });
 
@@ -44,7 +47,7 @@ void main() {
 
   Future<(int, String)> run(String scriptPath,
       {List<String> args = const [],
-      List<String> additionalReadPaths = const [],
+      String? migrationsPathOverride,
       String? denoCacheDir}) async {
     final output = StringBuffer();
     final exitCode = await sandbox.execute(
@@ -52,7 +55,7 @@ void main() {
       databasePath: tempDbDir,
       outputDir: tempOutputDir,
       args: args,
-      additionalReadPaths: additionalReadPaths,
+      migrationsPath: migrationsPathOverride ?? migrationsDir,
       denoCacheDir: denoCacheDir,
       writeInTerminal: output.write,
     );
@@ -78,12 +81,9 @@ void main() {
   }
 
   test('allowed: quiverdb_open_close.ts', () async {
-    final migrationsDir =
-        p.normalize(p.absolute(p.join('test', 'data', 'migrations')));
     final (code, out) = await run(
       allowed('quiverdb_open_close.ts'),
       args: [tempDbDir, migrationsDir],
-      additionalReadPaths: [migrationsDir],
     );
     expect(code, 0, reason: out);
   }, timeout: Timeout(Duration(minutes: 2)));
@@ -117,7 +117,7 @@ void main() {
 
     final (code, out) = await run(
       denied('ffi_thirdparty_blocked.ts'),
-      additionalReadPaths: [realDenoDir!],
+      migrationsPathOverride: realDenoDir!,
       denoCacheDir: '/fake/deno/cache',
     );
     expect(code, isNot(0));

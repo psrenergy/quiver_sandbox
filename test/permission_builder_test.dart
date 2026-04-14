@@ -8,22 +8,22 @@ void main() {
     String scriptPath = '/scripts/report.ts',
     String databasePath = '/data/mydb',
     String outputDir = '/tmp/output',
-    List<String> additionalReadPaths = const [],
+    String migrationsPath = '/data/migrations',
     String? denoCacheDir,
   }) {
     return builder.buildFlags(
       scriptPath: scriptPath,
       databasePath: databasePath,
       outputDir: outputDir,
-      additionalReadPaths: additionalReadPaths,
+      migrationsPath: migrationsPath,
       denoCacheDir: denoCacheDir,
     );
   }
 
   group('PermissionBuilder', () {
-    test('includes --allow-read scoped to databasePath and script dir', () {
+    test('includes --allow-read scoped to databasePath, script dir, and migrationsPath', () {
       final flags = buildDefault();
-      expect(flags, contains('--allow-read=/data/mydb,/scripts'));
+      expect(flags, contains('--allow-read=/data/mydb,/scripts,/data/migrations'));
     });
 
     test('includes --allow-write scoped to databasePath and outputDir', () {
@@ -56,19 +56,17 @@ void main() {
       expect(flags, contains('--allow-sys'));
     });
 
-    test('includes additionalReadPaths in --allow-read', () {
-      final flags = buildDefault(
-        additionalReadPaths: ['/extra/data', '/extra/migrations'],
-      );
+    test('includes migrationsPath in --allow-read', () {
+      final flags = buildDefault(migrationsPath: '/extra/migrations');
       expect(
         flags,
-        contains('--allow-read=/data/mydb,/scripts,/extra/data,/extra/migrations'),
+        contains('--allow-read=/data/mydb,/scripts,/extra/migrations'),
       );
     });
 
     test('includes denoCacheDir in --allow-read and --allow-ffi', () {
       final flags = buildDefault(denoCacheDir: '/home/user/.deno');
-      expect(flags, contains('--allow-read=/data/mydb,/scripts,/home/user/.deno'));
+      expect(flags, contains('--allow-read=/data/mydb,/scripts,/data/migrations,/home/user/.deno'));
       expect(flags, contains('--allow-ffi=/data/mydb,/home/user/.deno'));
     });
 
@@ -93,9 +91,9 @@ void main() {
       );
     });
 
-    test('throws ArgumentError for relative additionalReadPaths', () {
+    test('throws ArgumentError for relative migrationsPath', () {
       expect(
-        () => buildDefault(additionalReadPaths: ['relative/path']),
+        () => buildDefault(migrationsPath: 'relative/path'),
         throwsA(isA<ArgumentError>()),
       );
     });

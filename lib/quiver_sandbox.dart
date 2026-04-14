@@ -23,21 +23,19 @@ class PermissionBuilder {
     required String scriptPath,
     required String databasePath,
     required String outputDir,
-    List<String> additionalReadPaths = const [],
+    required String migrationsPath,
     String? denoCacheDir,
   }) {
     _validateAbsolute('scriptPath', scriptPath);
     _validateAbsolute('databasePath', databasePath);
     _validateAbsolute('outputDir', outputDir);
-    for (var i = 0; i < additionalReadPaths.length; i++) {
-      _validateAbsolute('additionalReadPaths[$i]', additionalReadPaths[i]);
-    }
+    _validateAbsolute('migrationsPath', migrationsPath);
 
     final scriptDir = p.dirname(scriptPath);
     final readPaths = [
       databasePath,
       scriptDir,
-      ...additionalReadPaths,
+      migrationsPath,
       ?denoCacheDir,
     ];
     final ffiPaths = [
@@ -80,7 +78,7 @@ class QuiverSandbox {
   /// Returns the process exit code.
   ///
   /// The sandbox enforces:
-  /// - Read access scoped to [databasePath], script directory, and [additionalReadPaths]
+  /// - Read access scoped to [databasePath], script directory, and [migrationsPath]
   /// - Write access scoped to [databasePath] and [outputDir]
   /// - Network access scoped to npm registries (registry.npmjs.org, esm.sh)
   /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
@@ -93,7 +91,7 @@ class QuiverSandbox {
     required String outputDir,
     required void Function(String) writeInTerminal,
     List<String> args = const [],
-    List<String> additionalReadPaths = const [],
+    required String migrationsPath,
     String? denoCacheDir,
     Duration? timeout,
   }) async {
@@ -103,7 +101,7 @@ class QuiverSandbox {
       scriptPath: scriptPath,
       databasePath: databasePath,
       outputDir: outputDir,
-      additionalReadPaths: additionalReadPaths,
+      migrationsPath: migrationsPath,
       denoCacheDir: resolvedCacheDir,
     );
 

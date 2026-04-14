@@ -37,8 +37,8 @@ Total: 31 tests (21 unit + 8 integration + 1 QuiverDB integration + 1 third-part
 | 17 | throws ArgumentError for relative scriptPath | Rejects non-absolute script paths |
 | 18 | throws ArgumentError for relative databasePath | Rejects non-absolute database paths |
 | 19 | throws ArgumentError for relative outputDir | Rejects non-absolute output paths |
-| 20 | includes additionalReadPaths in --allow-read | Extra paths appended to read scope |
-| 21 | throws ArgumentError for relative additionalReadPaths | Rejects non-absolute additional paths |
+| 20 | includes migrationsPath in --allow-read | Migrations path appended to read scope |
+| 21 | throws ArgumentError for relative migrationsPath | Rejects non-absolute migrations path |
 
 ## Integration Tests (requires Deno)
 

@@ -7,6 +7,7 @@ void main() async {
   final exitCode = await sandbox.execute(
     scriptPath: '/path/to/reports/monthly.ts',
     databasePath: '/path/to/mydb',
+    migrationsPath: '/path/to/migrations',
     outputDir: '/tmp/output',
     args: ['--month', '2026-03'],
     writeInTerminal: stdout.write,
