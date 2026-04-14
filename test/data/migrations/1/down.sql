@@ -1,0 +1,20 @@
+PRAGMA user_version = 0;
+
+DROP TABLE Configuration;
+DROP TABLE Configuration_time_series_emissions;
+DROP TABLE Material;
+DROP TABLE Material_time_series_demand;
+DROP TABLE Recipe;
+DROP TABLE Recipe_vector_resource;
+DROP TABLE Recipe_vector_product;
+DROP TABLE Process;
+DROP TABLE Process_vector_recipe;
+DROP TABLE Plant;
+DROP TABLE Plant_vector_topology;
+DROP TABLE InputMarket;
+DROP TABLE InputMarket_time_series_parameters;
+DROP TABLE OutputMarket;
+DROP TABLE OutputMarket_time_series_parameters;
+DROP TABLE Storage;
+DROP TABLE ProcessInPlant;
+DROP TABLE ProcessInPlant_time_series_parameters;

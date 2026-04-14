@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'permission_builder.dart';
+import 'sandbox_config.dart';
+
 /// The result of running a Deno script.
 class DenoResult {
   final String stdout;
@@ -16,36 +19,41 @@ class DenoResult {
   bool get success => exitCode == 0;
 }
 
-/// Runs Deno scripts as subprocesses.
-class DenoRunner {
+/// Executes Deno scripts inside a permission-scoped sandbox.
+class QuiverSandbox {
   /// Path to the Deno executable. Defaults to `"deno"` (assumes it's on PATH).
   final String denoExecutable;
 
-  const DenoRunner({this.denoExecutable = 'deno'});
+  final PermissionBuilder _permissionBuilder;
 
-  /// Runs a Deno script at [scriptPath] with the given positional [args].
+  const QuiverSandbox({
+    this.denoExecutable = 'deno',
+    PermissionBuilder permissionBuilder = const PermissionBuilder(),
+  }) : _permissionBuilder = permissionBuilder;
+
+  /// Executes the script described by [config] in a sandboxed Deno process.
   ///
-  /// [denoFlags] are passed to `deno run` before the script path
-  /// (e.g. `['--allow-read', '--allow-net']`).
-  ///
-  /// [workingDirectory] sets the working directory for the subprocess.
-  Future<DenoResult> run(
-    String scriptPath,
-    List<String> args, {
-    List<String> denoFlags = const [],
-    String? workingDirectory,
-  }) async {
+  /// The sandbox enforces:
+  /// - Read access scoped to database and script directories
+  /// - Write access scoped to the output directory
+  /// - Network access scoped to npm registries
+  /// - FFI access scoped to the database directory (for Koffi/QuiverDB)
+  /// - Subprocess spawning denied
+  /// - System info access denied by default (toggle via [SandboxConfig.allowSys])
+  Future<DenoResult> execute(SandboxConfig config) async {
+    final flags = _permissionBuilder.buildFlags(config);
+
     final arguments = [
       'run',
-      ...denoFlags,
-      scriptPath,
-      ...args,
+      ...flags,
+      config.scriptPath,
+      ...config.args,
     ];
 
     final process = await Process.run(
       denoExecutable,
       arguments,
-      workingDirectory: workingDirectory,
+      runInShell: Platform.isWindows,
     );
 
     return DenoResult(

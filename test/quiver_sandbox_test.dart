@@ -2,15 +2,15 @@ import 'package:quiver_sandbox/quiver_sandbox.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('DenoRunner', () {
+  group('QuiverSandbox', () {
     test('uses "deno" as default executable', () {
-      final runner = DenoRunner();
-      expect(runner.denoExecutable, equals('deno'));
+      final sandbox = QuiverSandbox();
+      expect(sandbox.denoExecutable, equals('deno'));
     });
 
     test('accepts a custom executable path', () {
-      final runner = DenoRunner(denoExecutable: '/usr/local/bin/deno');
-      expect(runner.denoExecutable, equals('/usr/local/bin/deno'));
+      final sandbox = QuiverSandbox(denoExecutable: '/usr/local/bin/deno');
+      expect(sandbox.denoExecutable, equals('/usr/local/bin/deno'));
     });
   });
 
