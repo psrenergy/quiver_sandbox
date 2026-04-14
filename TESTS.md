@@ -75,7 +75,7 @@ Total: 31 tests (21 unit + 8 integration + 1 QuiverDB integration + 1 third-part
 
 | # | Test | Fixture | Verifies |
 |---|------|---------|----------|
-| 33 | third-party FFI package is blocked without Deno cache in FFI scope | `ffi_thirdparty_blocked.ts` | Imports `npm:better-sqlite3@11.9.1` (native FFI bindings). Grants `--allow-read` to Deno cache (so npm import resolves) but excludes it from `--allow-ffi` scope. Native binary load fails with `NotCapable`. |
+| 31 | third-party FFI package is blocked without Deno cache in FFI scope | `ffi_thirdparty_blocked.ts` | Imports `npm:better-sqlite3@11.9.1` (native FFI bindings). Grants `--allow-read` to Deno cache (so npm import resolves) but excludes it from `--allow-ffi` scope. Native binary load fails with `NotCapable`. |
 
 ## Test Fixtures
 
