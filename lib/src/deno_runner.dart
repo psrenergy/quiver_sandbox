@@ -36,6 +36,7 @@ class QuiverSandbox {
     List<String> additionalReadPaths = const [],
     List<String> allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
     String? denoCacheDir,
+    bool allowEnv = true,
     bool allowSys = false,
     Duration? timeout,
   }) async {
@@ -49,6 +50,7 @@ class QuiverSandbox {
       args: args,
       allowedNetHosts: allowedNetHosts,
       denoCacheDir: resolvedCacheDir,
+      allowEnv: allowEnv,
       allowSys: allowSys,
       timeout: timeout,
     );
