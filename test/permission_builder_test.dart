@@ -46,9 +46,9 @@ void main() {
       expect(flags, contains('--deny-run'));
     });
 
-    test('includes --allow-env always', () {
+    test('includes --deny-env always', () {
       final flags = buildDefault();
-      expect(flags, contains('--allow-env'));
+      expect(flags, contains('--deny-env'));
     });
 
     test('includes --allow-sys always', () {

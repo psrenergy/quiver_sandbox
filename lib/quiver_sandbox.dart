@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 ///
 /// Security settings are hardcoded:
 /// - Network: registry.npmjs.org, esm.sh
-/// - Env: allowed (npm packages need process.env)
+/// - Env: denied (no environment variable access)
 /// - Sys: allowed (Koffi/QuiverDB needs OS/arch detection)
 /// - Run: denied (no subprocess spawning)
 class PermissionBuilder {
@@ -51,7 +51,7 @@ class PermissionBuilder {
       '--allow-net=registry.npmjs.org,esm.sh',
       '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
-      '--allow-env',
+      '--deny-env',
       '--allow-sys',
     ];
   }
@@ -84,7 +84,8 @@ class QuiverSandbox {
   /// - Write access scoped to [databasePath] and [outputDir]
   /// - Network access scoped to npm registries (registry.npmjs.org, esm.sh)
   /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
-  /// - Environment and system info access allowed (npm compat + Koffi)
+  /// - Environment variable access denied
+  /// - System info access allowed (Koffi/QuiverDB needs OS/arch detection)
   /// - Subprocess spawning denied
   Future<int> execute({
     required String scriptPath,

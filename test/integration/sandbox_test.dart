@@ -201,14 +201,7 @@ void main() {
       );
 
       expect(exitCode, isNot(0));
-      // With --allow-env, the bindings package may get past the permission
-      // check and fail with a missing .node file error instead of NotCapable.
-      final out = output.toString();
-      expect(
-        out.contains('NotCapable') || out.contains('Could not locate the bindings file'),
-        isTrue,
-        reason: 'Expected NotCapable or bindings-not-found error, got: $out',
-      );
+      expect(output.toString(), contains('NotCapable'));
     });
   }, timeout: Timeout(Duration(minutes: 2)));
 
@@ -292,7 +285,7 @@ void main() {
   });
 
   group('Environment variable access', () {
-    test('script CAN read environment variables', () async {
+    test('script CANNOT read environment variables', () async {
       final output = StringBuffer();
       final exitCode = await sandbox.execute(
         scriptPath: fixturePath('env_read.ts'),
@@ -300,8 +293,8 @@ void main() {
         outputDir: tempOutputDir,
         writeInTerminal: output.write,
       );
-      expect(exitCode, equals(0));
-      expect(output.toString(), contains('PATH:'));
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
     });
   });
 
