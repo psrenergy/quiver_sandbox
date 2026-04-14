@@ -1,4 +1,4 @@
-import 'package:quiver_sandbox/src/permission_builder.dart';
+import 'package:quiver_sandbox/quiver_sandbox.dart';
 import 'package:test/test.dart';
 
 void main() {

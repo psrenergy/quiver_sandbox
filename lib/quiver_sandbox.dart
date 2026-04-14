@@ -1,4 +1,150 @@
 /// A Dart library for running Deno scripts in a permission-scoped sandbox.
 library;
 
-export 'src/deno_runner.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+/// Builds the Deno permission flags for the QuiverSandbox.
+///
+/// Security settings are hardcoded:
+/// - Network: registry.npmjs.org, esm.sh
+/// - Env: allowed (npm packages need process.env)
+/// - Sys: allowed (Koffi/QuiverDB needs OS/arch detection)
+/// - Run: denied (no subprocess spawning)
+class PermissionBuilder {
+  const PermissionBuilder();
+
+  /// Returns the list of Deno CLI flags that enforce the sandbox permissions.
+  ///
+  /// Throws [ArgumentError] if any path is not absolute.
+  List<String> buildFlags({
+    required String scriptPath,
+    required String databasePath,
+    required String outputDir,
+    List<String> additionalReadPaths = const [],
+    String? denoCacheDir,
+  }) {
+    _validateAbsolute('scriptPath', scriptPath);
+    _validateAbsolute('databasePath', databasePath);
+    _validateAbsolute('outputDir', outputDir);
+    for (var i = 0; i < additionalReadPaths.length; i++) {
+      _validateAbsolute('additionalReadPaths[$i]', additionalReadPaths[i]);
+    }
+
+    final scriptDir = p.dirname(scriptPath);
+    final readPaths = [
+      databasePath,
+      scriptDir,
+      ...additionalReadPaths,
+      ?denoCacheDir,
+    ];
+    final ffiPaths = [
+      databasePath,
+      ?denoCacheDir,
+    ];
+
+    return [
+      '--allow-read=${readPaths.join(',')}',
+      '--allow-write=$databasePath,$outputDir',
+      '--allow-net=registry.npmjs.org,esm.sh',
+      '--allow-ffi=${ffiPaths.join(',')}',
+      '--deny-run',
+      '--allow-env',
+      '--allow-sys',
+    ];
+  }
+
+  void _validateAbsolute(String name, String path) {
+    if (!p.isAbsolute(path)) {
+      throw ArgumentError.value(path, name, 'must be an absolute path');
+    }
+  }
+}
+
+/// Executes Deno scripts inside a permission-scoped sandbox.
+class QuiverSandbox {
+  /// Path to the Deno executable. Defaults to `"deno"` (assumes it's on PATH).
+  final String denoExecutable;
+
+  final PermissionBuilder _permissionBuilder;
+
+  QuiverSandbox({
+    this.denoExecutable = 'deno',
+  }) : _permissionBuilder = const PermissionBuilder();
+
+  /// Executes a Deno script in a sandboxed process.
+  ///
+  /// Output (stdout and stderr) is streamed to [writeInTerminal] in real-time.
+  /// Returns the process exit code.
+  ///
+  /// The sandbox enforces:
+  /// - Read access scoped to [databasePath], script directory, and [additionalReadPaths]
+  /// - Write access scoped to [databasePath] and [outputDir]
+  /// - Network access scoped to npm registries (registry.npmjs.org, esm.sh)
+  /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
+  /// - Environment and system info access allowed (npm compat + Koffi)
+  /// - Subprocess spawning denied
+  Future<int> execute({
+    required String scriptPath,
+    required String databasePath,
+    required String outputDir,
+    required void Function(String) writeInTerminal,
+    List<String> args = const [],
+    List<String> additionalReadPaths = const [],
+    String? denoCacheDir,
+    Duration? timeout,
+  }) async {
+    final resolvedCacheDir = denoCacheDir ?? await _resolveDenoCacheDir();
+
+    final flags = _permissionBuilder.buildFlags(
+      scriptPath: scriptPath,
+      databasePath: databasePath,
+      outputDir: outputDir,
+      additionalReadPaths: additionalReadPaths,
+      denoCacheDir: resolvedCacheDir,
+    );
+
+    final arguments = [
+      'run',
+      ...flags,
+      scriptPath,
+      ...args,
+    ];
+
+    final process = await Process.start(
+      denoExecutable,
+      arguments,
+      runInShell: Platform.isWindows,
+    );
+
+    process.stdout.transform(const Utf8Decoder()).listen(writeInTerminal);
+    process.stderr.transform(const Utf8Decoder()).listen(writeInTerminal);
+
+    return process.exitCode;
+  }
+
+  String? _cachedDenoCacheDir;
+
+  /// Auto-detects the Deno cache directory via `deno info --json`.
+  Future<String?> _resolveDenoCacheDir() async {
+    if (_cachedDenoCacheDir != null) return _cachedDenoCacheDir;
+
+    try {
+      final result = await Process.run(
+        denoExecutable,
+        ['info', '--json'],
+        runInShell: Platform.isWindows,
+      );
+      if (result.exitCode == 0) {
+        final info =
+            jsonDecode(result.stdout as String) as Map<String, dynamic>;
+        _cachedDenoCacheDir = info['denoDir'] as String?;
+      }
+    } on Exception {
+      // Ignore — denoCacheDir will be null and omitted from permissions.
+    }
+    return _cachedDenoCacheDir;
+  }
+}
