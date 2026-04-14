@@ -109,5 +109,10 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
     });
+
+    test('includes --deny-env always', () {
+      final flags = builder.buildFlags(makeConfig());
+      expect(flags, contains('--deny-env'));
+    });
   });
 }

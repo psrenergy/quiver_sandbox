@@ -35,6 +35,7 @@ class PermissionBuilder {
       '--allow-net=${config.allowedNetHosts.join(',')}',
       '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
+      '--deny-env',
       if (config.allowSys) '--allow-sys' else '--deny-sys',
     ];
   }
