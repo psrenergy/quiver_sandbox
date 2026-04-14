@@ -88,6 +88,8 @@ void main() {
     'env_read.ts',
     'write_to_script_dir.ts',
     'write_to_system_dir.ts',
+    'runtime_error.ts',
+    'syntax_error.ts',
   ]) {
     test('denied: $fixture', () async {
       final (code, out) = await run(denied(fixture));
@@ -112,16 +114,6 @@ void main() {
     expect(code, isNot(0));
     expect(out, contains('NotCapable'));
   }, timeout: Timeout(Duration(minutes: 2)));
-
-  test('denied: syntax_error.ts', () async {
-    final (code, _) = await run(denied('syntax_error.ts'));
-    expect(code, isNot(0));
-  });
-
-  test('denied: runtime_error.ts', () async {
-    final (code, _) = await run(denied('runtime_error.ts'));
-    expect(code, isNot(0));
-  });
 
   test('denied: generate_excel.ts (--deny-env)', () async {
     final (code, out) =
