@@ -25,12 +25,6 @@ class SandboxConfig {
   /// bindings can load. If `null`, [QuiverSandbox] auto-detects via `deno info`.
   final String? denoCacheDir;
 
-  /// Whether to allow environment variable access (`--allow-env`).
-  /// Defaults to `true` because many npm packages (readable-stream, graceful-fs,
-  /// bluebird, etc.) read env vars for feature detection and fail under Deno
-  /// without this permission.
-  final bool allowEnv;
-
   /// Whether to allow system info access (`--allow-sys`).
   /// Defaults to `false` (`--deny-sys`).
   /// Set to `true` if Koffi/QuiverDB needs OS/arch detection.
@@ -47,7 +41,6 @@ class SandboxConfig {
     this.args = const [],
     this.allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
     this.denoCacheDir,
-    this.allowEnv = true,
     this.allowSys = false,
     this.timeout,
   });

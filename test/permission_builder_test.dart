@@ -12,7 +12,6 @@ void main() {
     List<String> additionalReadPaths = const [],
     List<String> args = const [],
     List<String> allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
-    bool allowEnv = true,
     bool allowSys = false,
   }) {
     return SandboxConfig(
@@ -22,7 +21,6 @@ void main() {
       additionalReadPaths: additionalReadPaths,
       args: args,
       allowedNetHosts: allowedNetHosts,
-      allowEnv: allowEnv,
       allowSys: allowSys,
     );
   }
@@ -112,16 +110,9 @@ void main() {
       );
     });
 
-    test('includes --allow-env by default', () {
+    test('includes --allow-env always', () {
       final flags = builder.buildFlags(makeConfig());
       expect(flags, contains('--allow-env'));
-      expect(flags, isNot(contains('--deny-env')));
-    });
-
-    test('includes --deny-env when allowEnv is false', () {
-      final flags = builder.buildFlags(makeConfig(allowEnv: false));
-      expect(flags, contains('--deny-env'));
-      expect(flags, isNot(contains('--allow-env')));
     });
   });
 }

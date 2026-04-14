@@ -306,17 +306,16 @@ void main() {
   });
 
   group('Environment variable access', () {
-    test('script CANNOT read environment variables when allowEnv is false', () async {
+    test('script CAN read environment variables', () async {
       final output = StringBuffer();
       final exitCode = await sandbox.execute(
         scriptPath: fixturePath('env_read.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
-        allowEnv: false,
         writeInTerminal: output.write,
       );
-      expect(exitCode, isNot(0));
-      expect(output.toString(), contains('NotCapable'));
+      expect(exitCode, equals(0));
+      expect(output.toString(), contains('PATH:'));
     });
   });
 

@@ -1,3 +1,3 @@
-// Tries to read an environment variable — should be denied by --deny-env.
+// Reads an environment variable — allowed by --allow-env.
 const path = Deno.env.get("PATH");
 console.log(`PATH: ${path}`);
