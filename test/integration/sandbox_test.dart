@@ -218,4 +218,154 @@ void main() {
       expect(output.toString(), contains('NotCapable'));
     });
   }, timeout: Timeout(Duration(minutes: 2)));
+
+  group('Write boundary enforcement', () {
+    test('script CANNOT write to its own directory', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('write_to_script_dir.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
+    });
+
+    test('script CANNOT write to system directory', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('write_to_system_dir.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
+    });
+
+    test('script CAN write to databasePath', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('write_to_db_allowed.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        args: [tempDbDir],
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, equals(0));
+      expect(output.toString(), contains('wrote to databasePath'));
+      final file = File(p.join(tempDbDir, 'test_write.txt'));
+      expect(file.existsSync(), isTrue);
+      expect(file.readAsStringSync(), equals('db write ok'));
+    });
+  });
+
+  group('Script error handling', () {
+    test('syntax error exits non-zero', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('syntax_error.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('error'));
+    });
+
+    test('runtime error exits non-zero', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('runtime_error.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('intentional runtime error'));
+    });
+
+    test('empty script exits zero', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('empty_script.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, equals(0));
+    });
+  });
+
+  group('Environment variable access', () {
+    test('script CANNOT read environment variables', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('env_read.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, isNot(0));
+      expect(output.toString(), contains('NotCapable'));
+    });
+  });
+
+  group('Output generation', () {
+    test('script generates HTML file in outputDir', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('generate_html.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        args: [tempOutputDir],
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, equals(0));
+      expect(output.toString(), contains('html generated'));
+      final file = File(p.join(tempOutputDir, 'report.html'));
+      expect(file.existsSync(), isTrue);
+      expect(file.readAsStringSync(), contains('QuiverSandbox Report'));
+    });
+
+    test('script generates JSON file in outputDir', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('generate_json.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        args: [tempOutputDir],
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, equals(0));
+      expect(output.toString(), contains('json generated'));
+      final file = File(p.join(tempOutputDir, 'data.json'));
+      expect(file.existsSync(), isTrue);
+      final content = file.readAsStringSync();
+      expect(content, contains('"status": "ok"'));
+    });
+
+    test('script generates Excel file in outputDir', () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: fixturePath('generate_excel.ts'),
+        databasePath: tempDbDir,
+        outputDir: tempOutputDir,
+        args: [tempOutputDir],
+        writeInTerminal: output.write,
+      );
+
+      if (exitCode != 0) {
+        // ignore: avoid_print
+        print('output: ${output.toString()}');
+      }
+
+      expect(exitCode, equals(0), reason: output.toString());
+      expect(output.toString(), contains('excel generated'));
+      final file = File(p.join(tempOutputDir, 'report.xlsx'));
+      expect(file.existsSync(), isTrue);
+      expect(file.lengthSync(), greaterThan(0));
+    });
+  }, timeout: Timeout(Duration(minutes: 2)));
 }
