@@ -7,7 +7,7 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 - `dart pub get` — install dependencies
 - `dart analyze` — static analysis
 - `dart test` — run all tests (unit + integration, requires Deno)
-- `dart test test/permission_builder_test.dart test/sandbox_config_test.dart test/quiver_sandbox_test.dart` — unit tests only (no Deno required)
+- `dart test test/sandbox_config_test.dart` — unit tests only (no Deno required)
 - `dart test test/integration/` — integration tests only (requires Deno)
 
 ## Architecture
