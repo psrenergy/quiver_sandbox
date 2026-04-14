@@ -13,14 +13,27 @@ class PermissionBuilder {
     _validateAbsolute('scriptPath', config.scriptPath);
     _validateAbsolute('databasePath', config.databasePath);
     _validateAbsolute('outputDir', config.outputDir);
+    for (var i = 0; i < config.additionalReadPaths.length; i++) {
+      _validateAbsolute('additionalReadPaths[$i]', config.additionalReadPaths[i]);
+    }
 
     final scriptDir = p.dirname(config.scriptPath);
+    final readPaths = [
+      config.databasePath,
+      scriptDir,
+      ...config.additionalReadPaths,
+      if (config.denoCacheDir != null) config.denoCacheDir!,
+    ];
+    final ffiPaths = [
+      config.databasePath,
+      if (config.denoCacheDir != null) config.denoCacheDir!,
+    ];
 
     return [
-      '--allow-read=${config.databasePath},$scriptDir',
-      '--allow-write=${config.outputDir}',
+      '--allow-read=${readPaths.join(',')}',
+      '--allow-write=${config.databasePath},${config.outputDir}',
       '--allow-net=${config.allowedNetHosts.join(',')}',
-      '--allow-ffi=${config.databasePath}',
+      '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
       if (config.allowSys) '--allow-sys' else '--deny-sys',
     ];

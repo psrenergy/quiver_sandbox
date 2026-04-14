@@ -9,12 +9,21 @@ class SandboxConfig {
   /// Directory where the script writes output files (HTML, PDF, Excel).
   final String outputDir;
 
+  /// Additional directories the script is allowed to read from.
+  /// Added to `--allow-read` alongside databasePath and scriptDir.
+  final List<String> additionalReadPaths;
+
   /// Positional arguments forwarded to the Deno script.
   final List<String> args;
 
   /// Network hosts the script is allowed to reach (for npm: imports).
   /// Defaults to `['registry.npmjs.org', 'esm.sh']`.
   final List<String> allowedNetHosts;
+
+  /// Deno cache directory (for npm packages and native binaries like Koffi).
+  /// Added to `--allow-read` and `--allow-ffi` so npm: imports with native
+  /// bindings can load. If `null`, [QuiverSandbox] auto-detects via `deno info`.
+  final String? denoCacheDir;
 
   /// Whether to allow system info access (`--allow-sys`).
   /// Defaults to `false` (`--deny-sys`).
@@ -28,8 +37,10 @@ class SandboxConfig {
     required this.scriptPath,
     required this.databasePath,
     required this.outputDir,
+    this.additionalReadPaths = const [],
     this.args = const [],
     this.allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
+    this.denoCacheDir,
     this.allowSys = false,
     this.timeout,
   });

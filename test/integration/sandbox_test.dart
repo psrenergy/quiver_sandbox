@@ -50,12 +50,14 @@ void main() {
   SandboxConfig configFor(
     String fixtureName, {
     List<String> args = const [],
+    List<String> additionalReadPaths = const [],
     bool allowSys = false,
   }) {
     return SandboxConfig(
       scriptPath: p.normalize(p.join(fixturesDir, fixtureName)),
       databasePath: tempDbDir,
       outputDir: tempOutputDir,
+      additionalReadPaths: additionalReadPaths,
       args: args,
       allowSys: allowSys,
     );
@@ -124,4 +126,31 @@ void main() {
       expect(result.stdout, contains('hostname:'));
     });
   });
+
+  group('QuiverDB operations', () {
+    test('script can open and close QuiverDB database', () async {
+      final migrationsDir = p.normalize(
+        p.absolute(p.join('test', 'data', 'migrations')),
+      );
+
+      final result = await sandbox.execute(
+        configFor(
+          'quiverdb_open_close.ts',
+          args: [tempDbDir, migrationsDir],
+          additionalReadPaths: [migrationsDir],
+          allowSys: true,
+        ),
+      );
+
+      // Print stderr for debugging if it fails.
+      if (!result.success) {
+        // ignore: avoid_print
+        print('stderr: ${result.stderr}');
+      }
+
+      expect(result.success, isTrue, reason: result.stderr);
+      expect(result.stdout, contains('database opened successfully'));
+      expect(result.stdout, contains('database closed successfully'));
+    });
+  }, timeout: Timeout(Duration(minutes: 2)));
 }

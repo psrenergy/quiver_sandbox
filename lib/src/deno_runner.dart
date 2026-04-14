@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'permission_builder.dart';
@@ -26,7 +27,7 @@ class QuiverSandbox {
 
   final PermissionBuilder _permissionBuilder;
 
-  const QuiverSandbox({
+  QuiverSandbox({
     this.denoExecutable = 'deno',
     PermissionBuilder permissionBuilder = const PermissionBuilder(),
   }) : _permissionBuilder = permissionBuilder;
@@ -41,13 +42,28 @@ class QuiverSandbox {
   /// - Subprocess spawning denied
   /// - System info access denied by default (toggle via [SandboxConfig.allowSys])
   Future<DenoResult> execute(SandboxConfig config) async {
-    final flags = _permissionBuilder.buildFlags(config);
+    // Resolve Deno cache dir if not explicitly provided.
+    final resolvedConfig = config.denoCacheDir != null
+        ? config
+        : SandboxConfig(
+            scriptPath: config.scriptPath,
+            databasePath: config.databasePath,
+            outputDir: config.outputDir,
+            additionalReadPaths: config.additionalReadPaths,
+            args: config.args,
+            allowedNetHosts: config.allowedNetHosts,
+            denoCacheDir: await _resolveDenoCacheDir(),
+            allowSys: config.allowSys,
+            timeout: config.timeout,
+          );
+
+    final flags = _permissionBuilder.buildFlags(resolvedConfig);
 
     final arguments = [
       'run',
       ...flags,
-      config.scriptPath,
-      ...config.args,
+      resolvedConfig.scriptPath,
+      ...resolvedConfig.args,
     ];
 
     final process = await Process.run(
@@ -61,5 +77,27 @@ class QuiverSandbox {
       stderr: process.stderr as String,
       exitCode: process.exitCode,
     );
+  }
+
+  String? _cachedDenoCacheDir;
+
+  /// Auto-detects the Deno cache directory via `deno info --json`.
+  Future<String?> _resolveDenoCacheDir() async {
+    if (_cachedDenoCacheDir != null) return _cachedDenoCacheDir;
+
+    try {
+      final result = await Process.run(
+        denoExecutable,
+        ['info', '--json'],
+        runInShell: Platform.isWindows,
+      );
+      if (result.exitCode == 0) {
+        final info = jsonDecode(result.stdout as String) as Map<String, dynamic>;
+        _cachedDenoCacheDir = info['denoDir'] as String?;
+      }
+    } on Exception {
+      // Ignore — denoCacheDir will be null and omitted from permissions.
+    }
+    return _cachedDenoCacheDir;
   }
 }
