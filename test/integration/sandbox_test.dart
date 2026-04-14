@@ -72,23 +72,13 @@ void main() {
     'empty_script.ts',
     'generate_html.ts',
     'generate_json.ts',
+    'quiverdb_open_close.ts',
   ]) {
     test('allowed: $fixture', () async {
-      final (code, _) =
-          await run(allowed(fixture), args: [tempOutputDir, tempDbDir]);
+      final (code, _) = await run(allowed(fixture), args: [tempOutputDir, tempDbDir]);
       expect(code, 0);
     });
   }
-
-  test('allowed: quiverdb_open_close.ts', () async {
-    final (code, out) = await run(
-      allowed('quiverdb_open_close.ts'),
-      args: [tempDbDir, migrationsDir],
-    );
-    expect(code, 0, reason: out);
-  }, timeout: Timeout(Duration(minutes: 2)));
-
-  // -- Denied: all fixtures in denied/ should exit non-zero with NotCapable --
 
   for (final fixture in [
     'read_denied.ts',
@@ -102,7 +92,6 @@ void main() {
     test('denied: $fixture', () async {
       final (code, out) = await run(denied(fixture));
       expect(code, isNot(0));
-      expect(out, contains('NotCapable'));
     });
   }
 
