@@ -84,7 +84,7 @@ void main() {
     test('script CAN access sys info', () async {
       final output = StringBuffer();
       final exitCode = await sandbox.execute(
-        scriptPath: allowed('sys_denied.ts'),
+        scriptPath: allowed('sys_info.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
         writeInTerminal: output.write,
