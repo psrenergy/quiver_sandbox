@@ -29,41 +29,49 @@ class QuiverSandbox {
 
   QuiverSandbox({
     this.denoExecutable = 'deno',
-    PermissionBuilder permissionBuilder = const PermissionBuilder(),
-  }) : _permissionBuilder = permissionBuilder;
+  }) : _permissionBuilder = const PermissionBuilder();
 
-  /// Executes the script described by [config] in a sandboxed Deno process.
+  /// Executes a Deno script in a sandboxed process.
   ///
   /// The sandbox enforces:
-  /// - Read access scoped to database and script directories
-  /// - Write access scoped to the output directory
-  /// - Network access scoped to npm registries
-  /// - FFI access scoped to the database directory (for Koffi/QuiverDB)
+  /// - Read access scoped to [databasePath], script directory, and [additionalReadPaths]
+  /// - Write access scoped to [databasePath] and [outputDir]
+  /// - Network access scoped to [allowedNetHosts] (npm registries by default)
+  /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
   /// - Subprocess spawning denied
-  /// - System info access denied by default (toggle via [SandboxConfig.allowSys])
-  Future<DenoResult> execute(SandboxConfig config) async {
-    // Resolve Deno cache dir if not explicitly provided.
-    final resolvedConfig = config.denoCacheDir != null
-        ? config
-        : SandboxConfig(
-            scriptPath: config.scriptPath,
-            databasePath: config.databasePath,
-            outputDir: config.outputDir,
-            additionalReadPaths: config.additionalReadPaths,
-            args: config.args,
-            allowedNetHosts: config.allowedNetHosts,
-            denoCacheDir: await _resolveDenoCacheDir(),
-            allowSys: config.allowSys,
-            timeout: config.timeout,
-          );
+  /// - System info access denied by default (toggle via [allowSys])
+  Future<DenoResult> execute({
+    required String scriptPath,
+    required String databasePath,
+    required String outputDir,
+    List<String> args = const [],
+    List<String> additionalReadPaths = const [],
+    List<String> allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
+    String? denoCacheDir,
+    bool allowSys = false,
+    Duration? timeout,
+  }) async {
+    final resolvedCacheDir = denoCacheDir ?? await _resolveDenoCacheDir();
 
-    final flags = _permissionBuilder.buildFlags(resolvedConfig);
+    final config = SandboxConfig(
+      scriptPath: scriptPath,
+      databasePath: databasePath,
+      outputDir: outputDir,
+      additionalReadPaths: additionalReadPaths,
+      args: args,
+      allowedNetHosts: allowedNetHosts,
+      denoCacheDir: resolvedCacheDir,
+      allowSys: allowSys,
+      timeout: timeout,
+    );
+
+    final flags = _permissionBuilder.buildFlags(config);
 
     final arguments = [
       'run',
       ...flags,
-      resolvedConfig.scriptPath,
-      ...resolvedConfig.args,
+      config.scriptPath,
+      ...config.args,
     ];
 
     final process = await Process.run(
@@ -92,7 +100,8 @@ class QuiverSandbox {
         runInShell: Platform.isWindows,
       );
       if (result.exitCode == 0) {
-        final info = jsonDecode(result.stdout as String) as Map<String, dynamic>;
+        final info =
+            jsonDecode(result.stdout as String) as Map<String, dynamic>;
         _cachedDenoCacheDir = info['denoDir'] as String?;
       }
     } on Exception {

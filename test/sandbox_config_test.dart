@@ -1,4 +1,4 @@
-import 'package:quiver_sandbox/quiver_sandbox.dart';
+import 'package:quiver_sandbox/src/sandbox_config.dart';
 import 'package:test/test.dart';
 
 void main() {

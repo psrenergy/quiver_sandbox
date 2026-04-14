@@ -2,5 +2,3 @@
 library;
 
 export 'src/deno_runner.dart';
-export 'src/permission_builder.dart';
-export 'src/sandbox_config.dart';

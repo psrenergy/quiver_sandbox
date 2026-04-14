@@ -1,6 +1,6 @@
 # Test Registry
 
-Total: 32 tests (24 unit + 8 integration + 1 QuiverDB integration)
+Total: 33 tests (23 unit + 8 integration + 1 QuiverDB integration + 1 third-party FFI)
 
 ## Unit Tests (no Deno required)
 
@@ -78,6 +78,12 @@ Total: 32 tests (24 unit + 8 integration + 1 QuiverDB integration)
 |---|------|---------|----------|
 | 32 | script can open and close QuiverDB database | `quiverdb_open_close.ts` | Imports `npm:quiverdb@0.6.2`, runs `Database.fromMigrations()` with real migrations from `test/data/migrations/`, opens and closes DB successfully |
 
+### `test/integration/sandbox_test.dart` — Third-party FFI restriction
+
+| # | Test | Fixture | Verifies |
+|---|------|---------|----------|
+| 33 | third-party FFI package is blocked without Deno cache in FFI scope | `ffi_thirdparty_blocked.ts` | Imports `npm:better-sqlite3@11.9.1` (native FFI bindings). Grants `--allow-read` to Deno cache (so npm import resolves) but excludes it from `--allow-ffi` scope. Native binary load fails with `NotCapable`. |
+
 ## Test Fixtures
 
 | File | Purpose |
@@ -90,6 +96,7 @@ Total: 32 tests (24 unit + 8 integration + 1 QuiverDB integration)
 | `test/fixtures/sys_denied.ts` | Attempts to call `Deno.hostname()` (denied/allowed based on config) |
 | `test/fixtures/net_denied.ts` | Attempts to fetch `https://example.com` (should be denied) |
 | `test/fixtures/quiverdb_open_close.ts` | Opens QuiverDB via `Database.fromMigrations()`, logs success, closes |
+| `test/fixtures/ffi_thirdparty_blocked.ts` | Imports `npm:better-sqlite3@11.9.1`, attempts to open in-memory DB (should be denied FFI) |
 
 ## Test Data
 
