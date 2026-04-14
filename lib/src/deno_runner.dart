@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'permission_builder.dart';
-import 'sandbox_config.dart';
 
 /// Executes Deno scripts inside a permission-scoped sandbox.
 class QuiverSandbox {
@@ -23,10 +22,10 @@ class QuiverSandbox {
   /// The sandbox enforces:
   /// - Read access scoped to [databasePath], script directory, and [additionalReadPaths]
   /// - Write access scoped to [databasePath] and [outputDir]
-  /// - Network access scoped to [allowedNetHosts] (npm registries by default)
+  /// - Network access scoped to npm registries (registry.npmjs.org, esm.sh)
   /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
+  /// - Environment and system info access allowed (npm compat + Koffi)
   /// - Subprocess spawning denied
-  /// - System info access denied by default (toggle via [allowSys])
   Future<int> execute({
     required String scriptPath,
     required String databasePath,
@@ -34,32 +33,24 @@ class QuiverSandbox {
     required void Function(String) writeInTerminal,
     List<String> args = const [],
     List<String> additionalReadPaths = const [],
-    List<String> allowedNetHosts = const ['registry.npmjs.org', 'esm.sh'],
     String? denoCacheDir,
-    bool allowSys = false,
     Duration? timeout,
   }) async {
     final resolvedCacheDir = denoCacheDir ?? await _resolveDenoCacheDir();
 
-    final config = SandboxConfig(
+    final flags = _permissionBuilder.buildFlags(
       scriptPath: scriptPath,
       databasePath: databasePath,
       outputDir: outputDir,
       additionalReadPaths: additionalReadPaths,
-      args: args,
-      allowedNetHosts: allowedNetHosts,
       denoCacheDir: resolvedCacheDir,
-      allowSys: allowSys,
-      timeout: timeout,
     );
-
-    final flags = _permissionBuilder.buildFlags(config);
 
     final arguments = [
       'run',
       ...flags,
-      config.scriptPath,
-      ...config.args,
+      scriptPath,
+      ...args,
     ];
 
     final process = await Process.start(

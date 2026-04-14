@@ -129,27 +129,13 @@ void main() {
     });
   });
 
-  group('--deny-sys toggle', () {
-    test('script CANNOT access sys info with allowSys=false', () async {
+  group('System info access', () {
+    test('script CAN access sys info', () async {
       final output = StringBuffer();
       final exitCode = await sandbox.execute(
         scriptPath: fixturePath('sys_denied.ts'),
         databasePath: tempDbDir,
         outputDir: tempOutputDir,
-        allowSys: false,
-        writeInTerminal: output.write,
-      );
-      expect(exitCode, isNot(0));
-      expect(output.toString(), contains('NotCapable'));
-    });
-
-    test('script CAN access sys info with allowSys=true', () async {
-      final output = StringBuffer();
-      final exitCode = await sandbox.execute(
-        scriptPath: fixturePath('sys_denied.ts'),
-        databasePath: tempDbDir,
-        outputDir: tempOutputDir,
-        allowSys: true,
         writeInTerminal: output.write,
       );
       expect(exitCode, equals(0));
@@ -170,7 +156,7 @@ void main() {
         outputDir: tempOutputDir,
         args: [tempDbDir, migrationsDir],
         additionalReadPaths: [migrationsDir],
-        allowSys: true,
+
         writeInTerminal: output.write,
       );
 
@@ -210,7 +196,7 @@ void main() {
         outputDir: tempOutputDir,
         additionalReadPaths: [realDenoDir!],
         denoCacheDir: '/fake/deno/cache',
-        allowSys: true,
+
         writeInTerminal: output.write,
       );
 

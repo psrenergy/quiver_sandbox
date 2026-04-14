@@ -1,42 +1,52 @@
 import 'package:path/path.dart' as p;
 
-import 'sandbox_config.dart';
-
-/// Builds the Deno permission flags from a [SandboxConfig].
+/// Builds the Deno permission flags for the QuiverSandbox.
+///
+/// Security settings are hardcoded:
+/// - Network: registry.npmjs.org, esm.sh
+/// - Env: allowed (npm packages need process.env)
+/// - Sys: allowed (Koffi/QuiverDB needs OS/arch detection)
+/// - Run: denied (no subprocess spawning)
 class PermissionBuilder {
   const PermissionBuilder();
 
   /// Returns the list of Deno CLI flags that enforce the sandbox permissions.
   ///
-  /// Throws [ArgumentError] if any path in [config] is not absolute.
-  List<String> buildFlags(SandboxConfig config) {
-    _validateAbsolute('scriptPath', config.scriptPath);
-    _validateAbsolute('databasePath', config.databasePath);
-    _validateAbsolute('outputDir', config.outputDir);
-    for (var i = 0; i < config.additionalReadPaths.length; i++) {
-      _validateAbsolute('additionalReadPaths[$i]', config.additionalReadPaths[i]);
+  /// Throws [ArgumentError] if any path is not absolute.
+  List<String> buildFlags({
+    required String scriptPath,
+    required String databasePath,
+    required String outputDir,
+    List<String> additionalReadPaths = const [],
+    String? denoCacheDir,
+  }) {
+    _validateAbsolute('scriptPath', scriptPath);
+    _validateAbsolute('databasePath', databasePath);
+    _validateAbsolute('outputDir', outputDir);
+    for (var i = 0; i < additionalReadPaths.length; i++) {
+      _validateAbsolute('additionalReadPaths[$i]', additionalReadPaths[i]);
     }
 
-    final scriptDir = p.dirname(config.scriptPath);
+    final scriptDir = p.dirname(scriptPath);
     final readPaths = [
-      config.databasePath,
+      databasePath,
       scriptDir,
-      ...config.additionalReadPaths,
-      if (config.denoCacheDir != null) config.denoCacheDir!,
+      ...additionalReadPaths,
+      ?denoCacheDir,
     ];
     final ffiPaths = [
-      config.databasePath,
-      if (config.denoCacheDir != null) config.denoCacheDir!,
+      databasePath,
+      ?denoCacheDir,
     ];
 
     return [
       '--allow-read=${readPaths.join(',')}',
-      '--allow-write=${config.databasePath},${config.outputDir}',
-      '--allow-net=${config.allowedNetHosts.join(',')}',
+      '--allow-write=$databasePath,$outputDir',
+      '--allow-net=registry.npmjs.org,esm.sh',
       '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
       '--allow-env',
-      if (config.allowSys) '--allow-sys' else '--deny-sys',
+      '--allow-sys',
     ];
   }
 
