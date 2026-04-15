@@ -5,4 +5,3 @@ const html = `<!DOCTYPE html>
 <body><h1>QuiverSandbox Report</h1><p>Generated successfully.</p></body>
 </html>`;
 await Deno.writeTextFile(`report.html`, html);
-console.log("html generated");
