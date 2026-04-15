@@ -1,0 +1,59 @@
+@TestOn('vm')
+library;
+
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+import 'package:quiver_sandbox/quiver_sandbox.dart';
+import 'package:test/test.dart';
+
+void main() {
+  late String fixturesDir;
+  late String databasePath;
+  late String migrationsPath;
+  late QuiverSandbox sandbox;
+
+  setUpAll(() {
+    final result = Process.runSync('deno', [
+      '--version',
+    ], runInShell: Platform.isWindows);
+    if (result.exitCode != 0) {
+      throw StateError('Deno is not installed or not on PATH');
+    }
+  });
+
+  setUp(() {
+    fixturesDir = p.normalize(
+      p.absolute(p.join('test', 'fixtures', 'denied')),
+    );
+    databasePath =
+        Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
+    migrationsPath = p.normalize(
+      p.absolute(p.join('test', 'data', 'migrations')),
+    );
+    sandbox = QuiverSandbox();
+  });
+
+  tearDown(() {
+    final dir = Directory(databasePath);
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+  });
+
+  final fixtures = Directory(p.normalize(
+    p.absolute(p.join('test', 'fixtures', 'denied')),
+  )).listSync().whereType<File>().where((f) => f.path.endsWith('.ts'));
+
+  for (final fixture in fixtures) {
+    final name = p.basename(fixture.path);
+    test(name, () async {
+      final output = StringBuffer();
+      final exitCode = await sandbox.execute(
+        scriptPath: p.normalize(p.join(fixturesDir, name)),
+        databasePath: databasePath,
+        migrationsPath: migrationsPath,
+        writeInTerminal: output.write,
+      );
+      expect(exitCode, isNot(0));
+    });
+  }
+}
