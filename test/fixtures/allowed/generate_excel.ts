@@ -1,7 +1,6 @@
-// Generates an Excel file in outputDir (first arg) using exceljs.
+// Generates an Excel file in the database directory using exceljs.
 import ExcelJS from "npm:exceljs@4.4.0";
 
-const outputDir = Deno.args[0];
 const workbook = new ExcelJS.Workbook();
 const sheet = workbook.addWorksheet("Data");
 sheet.columns = [
@@ -9,5 +8,5 @@ sheet.columns = [
   { header: "Value", key: "value" },
 ];
 sheet.addRow({ name: "test", value: 42 });
-await workbook.xlsx.writeFile(`${outputDir}/report.xlsx`);
+await workbook.xlsx.writeFile(`report.xlsx`);
 console.log("excel generated");
