@@ -39,7 +39,7 @@ class PermissionBuilder {
       '--allow-net=registry.npmjs.org,esm.sh',
       '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
-      '--deny-env',
+      '--allow-env=QUIVER_DB_DIR,QUIVER_MIGRATIONS_DIR,READABLE_STREAM,GRACEFUL_FS_PLATFORM,TEST_GRACEFUL_FS_GLOBAL_PATCH,NODE_DEBUG,BLUEBIRD_DEBUG,BLUEBIRD_WARNINGS,BLUEBIRD_LONG_STACK_TRACES,BLUEBIRD_W_FORGOTTEN_RETURN,NODE_ENV',
       '--allow-sys',
     ];
   }
@@ -90,18 +90,16 @@ class QuiverSandbox {
       denoCacheDir: denoCacheDir,
     );
 
-    final arguments = [
-      'run',
-      ...flags,
-      scriptPath,
-      databasePath,
-      migrationsPath,
-    ];
+    final arguments = ['run', ...flags, scriptPath];
 
     final process = await Process.start(
       denoExecutable,
       arguments,
       runInShell: Platform.isWindows,
+      environment: {
+        'QUIVER_DB_DIR': databasePath,
+        'QUIVER_MIGRATIONS_DIR': migrationsPath,
+      },
     );
 
     process.stdout.transform(const Utf8Decoder()).listen(writeInTerminal);
