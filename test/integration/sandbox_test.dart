@@ -87,6 +87,7 @@ void main() {
     'write_to_system_dir.ts',
     'runtime_error.ts',
     'syntax_error.ts',
+    'ffi_thirdparty_blocked.ts',
   ]) {
     test('denied: $fixture', () async {
       final (code, out) = await run(denied(fixture));

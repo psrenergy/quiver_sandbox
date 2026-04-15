@@ -19,10 +19,10 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 ## Deno Permission Model
 
 ### Allowed (scoped)
-- `--allow-read`: databasePath, scriptDir, migrationsPath, denoCacheDir
+- `--allow-read`: databasePath, scriptDir, migrationsPath, denoCacheDir (auto-detected)
 - `--allow-write`: databasePath, outputDir
 - `--allow-net`: npm registries (registry.npmjs.org, esm.sh) by default
-- `--allow-ffi`: databasePath, denoCacheDir (Koffi native binaries)
+- `--allow-ffi`: databasePath, denoCacheDir (auto-detected, Koffi native binaries)
 
 ### Denied
 - `--deny-run`: always (no subprocess spawning)
