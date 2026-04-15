@@ -97,9 +97,7 @@ class QuiverSandbox {
       arguments,
       runInShell: Platform.isWindows,
       workingDirectory: databasePath,
-      environment: {
-        'MIGRATIONS_DIR': migrationsPath,
-      },
+      environment: {'MIGRATIONS_DIR': migrationsPath},
     );
 
     process.stdout.transform(const Utf8Decoder()).listen(writeInTerminal);

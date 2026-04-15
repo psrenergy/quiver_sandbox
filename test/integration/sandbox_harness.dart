@@ -27,11 +27,10 @@ void sandboxFixtureTests({
   });
 
   setUp(() {
-    fixturesDir = p.normalize(
-      p.absolute(p.join('test', 'fixtures', folder)),
-    );
-    databasePath =
-        Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
+    fixturesDir = p.normalize(p.absolute(p.join('test', 'fixtures', folder)));
+    databasePath = Directory.systemTemp
+        .createTempSync('quiver_sandbox_db_')
+        .path;
     migrationsPath = p.normalize(
       p.absolute(p.join('test', 'data', 'migrations')),
     );
@@ -43,9 +42,9 @@ void sandboxFixtureTests({
     if (dir.existsSync()) dir.deleteSync(recursive: true);
   });
 
-  final fixtures = Directory(p.normalize(
-    p.absolute(p.join('test', 'fixtures', folder)),
-  )).listSync().whereType<File>().where((f) => f.path.endsWith('.ts'));
+  final fixtures = Directory(
+    p.normalize(p.absolute(p.join('test', 'fixtures', folder))),
+  ).listSync().whereType<File>().where((f) => f.path.endsWith('.ts'));
 
   for (final fixture in fixtures) {
     final name = p.basename(fixture.path);
