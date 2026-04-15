@@ -39,7 +39,7 @@ class PermissionBuilder {
       '--allow-net=registry.npmjs.org,esm.sh',
       '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
-      '--allow-env=QUIVER_DB_DIR,QUIVER_MIGRATIONS_DIR,READABLE_STREAM,GRACEFUL_FS_PLATFORM,TEST_GRACEFUL_FS_GLOBAL_PATCH,NODE_DEBUG,BLUEBIRD_DEBUG,BLUEBIRD_WARNINGS,BLUEBIRD_LONG_STACK_TRACES,BLUEBIRD_W_FORGOTTEN_RETURN,NODE_ENV',
+      '--allow-env=MIGRATIONS_DIR,READABLE_STREAM,GRACEFUL_FS_PLATFORM,TEST_GRACEFUL_FS_GLOBAL_PATCH,NODE_DEBUG,BLUEBIRD_DEBUG,BLUEBIRD_WARNINGS,BLUEBIRD_LONG_STACK_TRACES,BLUEBIRD_W_FORGOTTEN_RETURN,NODE_ENV',
       '--allow-sys',
     ];
   }
@@ -96,9 +96,9 @@ class QuiverSandbox {
       denoExecutable,
       arguments,
       runInShell: Platform.isWindows,
+      workingDirectory: databasePath,
       environment: {
-        'QUIVER_DB_DIR': databasePath,
-        'QUIVER_MIGRATIONS_DIR': migrationsPath,
+        'MIGRATIONS_DIR': migrationsPath,
       },
     );
 
