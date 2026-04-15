@@ -15,8 +15,9 @@ void main() {
   late QuiverSandbox sandbox;
 
   setUpAll(() {
-    final result = Process.runSync('deno', ['--version'],
-        runInShell: Platform.isWindows);
+    final result = Process.runSync('deno', [
+      '--version',
+    ], runInShell: Platform.isWindows);
     if (result.exitCode != 0) {
       throw StateError('Deno is not installed or not on PATH');
     }
@@ -24,12 +25,13 @@ void main() {
 
   setUp(() {
     fixturesDir = p.normalize(p.absolute(p.join('test', 'fixtures')));
-    tempOutputDir =
-        Directory.systemTemp.createTempSync('quiver_sandbox_out_').path;
-    tempDbDir =
-        Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
-    migrationsDir =
-        p.normalize(p.absolute(p.join('test', 'data', 'migrations')));
+    tempOutputDir = Directory.systemTemp
+        .createTempSync('quiver_sandbox_out_')
+        .path;
+    tempDbDir = Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
+    migrationsDir = p.normalize(
+      p.absolute(p.join('test', 'data', 'migrations')),
+    );
     sandbox = QuiverSandbox();
   });
 
@@ -45,8 +47,10 @@ void main() {
   String denied(String name) =>
       p.normalize(p.join(fixturesDir, 'denied', name));
 
-  Future<(int, String)> run(String scriptPath,
-      {List<String> args = const []}) async {
+  Future<(int, String)> run(
+    String scriptPath, {
+    List<String> args = const [],
+  }) async {
     final output = StringBuffer();
     final exitCode = await sandbox.execute(
       scriptPath: scriptPath,
@@ -72,7 +76,10 @@ void main() {
     'quiverdb_open_close.ts',
   ]) {
     test('allowed: $fixture', () async {
-      final (code, _) = await run(allowed(fixture), args: [tempOutputDir, tempDbDir]);
+      final (code, _) = await run(
+        allowed(fixture),
+        args: [tempOutputDir, tempDbDir],
+      );
       expect(code, 0);
     });
   }
@@ -94,5 +101,4 @@ void main() {
       expect(code, isNot(0));
     });
   }
-
 }

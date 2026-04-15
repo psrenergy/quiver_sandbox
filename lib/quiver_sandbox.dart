@@ -32,16 +32,8 @@ class PermissionBuilder {
     _validateAbsolute('migrationsPath', migrationsPath);
 
     final scriptDir = p.dirname(scriptPath);
-    final readPaths = [
-      databasePath,
-      scriptDir,
-      migrationsPath,
-      ?denoCacheDir,
-    ];
-    final ffiPaths = [
-      databasePath,
-      ?denoCacheDir,
-    ];
+    final readPaths = [databasePath, scriptDir, migrationsPath, ?denoCacheDir];
+    final ffiPaths = [databasePath, ?denoCacheDir];
 
     return [
       '--allow-read=${readPaths.join(',')}',
@@ -68,9 +60,8 @@ class QuiverSandbox {
 
   final PermissionBuilder _permissionBuilder;
 
-  QuiverSandbox({
-    this.denoExecutable = 'deno',
-  }) : _permissionBuilder = const PermissionBuilder();
+  QuiverSandbox({this.denoExecutable = 'deno'})
+    : _permissionBuilder = const PermissionBuilder();
 
   /// Executes a Deno script in a sandboxed process.
   ///
@@ -104,12 +95,7 @@ class QuiverSandbox {
       denoCacheDir: resolvedCacheDir,
     );
 
-    final arguments = [
-      'run',
-      ...flags,
-      scriptPath,
-      ...args,
-    ];
+    final arguments = ['run', ...flags, scriptPath, ...args];
 
     final process = await Process.start(
       denoExecutable,
@@ -130,11 +116,10 @@ class QuiverSandbox {
     if (_cachedDenoCacheDir != null) return _cachedDenoCacheDir;
 
     try {
-      final result = await Process.run(
-        denoExecutable,
-        ['info', '--json'],
-        runInShell: Platform.isWindows,
-      );
+      final result = await Process.run(denoExecutable, [
+        'info',
+        '--json',
+      ], runInShell: Platform.isWindows);
       if (result.exitCode == 0) {
         final info =
             jsonDecode(result.stdout as String) as Map<String, dynamic>;
