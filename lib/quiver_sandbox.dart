@@ -82,13 +82,13 @@ class QuiverSandbox {
     required String migrationsPath,
     Duration? timeout,
   }) async {
-    final resolvedCacheDir = await _resolveDenoCacheDir();
+    final denoCacheDir = await _resolveDenoCacheDir();
 
     final flags = _permissionBuilder.buildFlags(
       scriptPath: scriptPath,
       databasePath: databasePath,
       migrationsPath: migrationsPath,
-      denoCacheDir: resolvedCacheDir,
+      denoCacheDir: denoCacheDir,
     );
 
     final arguments = ['run', ...flags, scriptPath, ...args];
