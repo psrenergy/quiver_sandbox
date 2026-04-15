@@ -12,7 +12,7 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 
 ## Architecture
 
-- `lib/src/sandbox_config.dart` — `SandboxConfig`: all inputs (scriptPath, databasePath, outputDir, args, permissions)
+- `lib/src/sandbox_config.dart` — `SandboxConfig`: all inputs (scriptPath, databasePath, args, permissions)
 - `lib/src/permission_builder.dart` — `PermissionBuilder`: assembles Deno `--allow-*`/`--deny-*` flags from config
 - `lib/src/deno_runner.dart` — `QuiverSandbox`: executes scripts via `Process.start`, streams output to `writeInTerminal` callback, returns exit code; auto-detects Deno cache dir
 
@@ -20,7 +20,7 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 
 ### Allowed (scoped)
 - `--allow-read`: databasePath, scriptDir, migrationsPath, denoCacheDir (auto-detected)
-- `--allow-write`: databasePath, outputDir
+- `--allow-write`: databasePath
 - `--allow-net`: npm registries (registry.npmjs.org, esm.sh) by default
 - `--allow-ffi`: databasePath, denoCacheDir (auto-detected, Koffi native binaries)
 

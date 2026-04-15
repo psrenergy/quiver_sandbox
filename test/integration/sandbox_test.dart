@@ -9,7 +9,6 @@ import 'package:test/test.dart';
 
 void main() {
   late String fixturesDir;
-  late String outputDir;
   late String databasePath;
   late String migrationsPath;
   late QuiverSandbox sandbox;
@@ -25,9 +24,6 @@ void main() {
 
   setUp(() {
     fixturesDir = p.normalize(p.absolute(p.join('test', 'fixtures')));
-    outputDir = Directory.systemTemp
-        .createTempSync('quiver_sandbox_out_')
-        .path;
     databasePath = Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
     migrationsPath = p.normalize(
       p.absolute(p.join('test', 'data', 'migrations')),
@@ -36,10 +32,8 @@ void main() {
   });
 
   tearDown(() {
-    for (final path in [outputDir, databasePath]) {
-      final dir = Directory(path);
-      if (dir.existsSync()) dir.deleteSync(recursive: true);
-    }
+    final dir = Directory(databasePath);
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
   });
 
   String allowed(String name) =>
@@ -55,7 +49,6 @@ void main() {
     final exitCode = await sandbox.execute(
       scriptPath: scriptPath,
       databasePath: databasePath,
-      outputDir: outputDir,
       args: args,
       migrationsPath: migrationsPath,
       writeInTerminal: output.write,
@@ -76,7 +69,7 @@ void main() {
     test('allowed: $fixture', () async {
       final (code, _) = await run(
         allowed(fixture),
-        args: [outputDir, tempDbDir],
+        args: [databasePath, migrationsPath],
       );
       expect(code, 0);
     });

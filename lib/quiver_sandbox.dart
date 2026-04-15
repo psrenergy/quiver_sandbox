@@ -22,13 +22,11 @@ class PermissionBuilder {
   List<String> buildFlags({
     required String scriptPath,
     required String databasePath,
-    required String outputDir,
     required String migrationsPath,
     String? denoCacheDir,
   }) {
     _validateAbsolute('scriptPath', scriptPath);
     _validateAbsolute('databasePath', databasePath);
-    _validateAbsolute('outputDir', outputDir);
     _validateAbsolute('migrationsPath', migrationsPath);
 
     final scriptDir = p.dirname(scriptPath);
@@ -37,7 +35,7 @@ class PermissionBuilder {
 
     return [
       '--allow-read=${readPaths.join(',')}',
-      '--allow-write=$databasePath,$outputDir',
+      '--allow-write=$databasePath',
       '--allow-net=registry.npmjs.org,esm.sh',
       '--allow-ffi=${ffiPaths.join(',')}',
       '--deny-run',
@@ -70,7 +68,7 @@ class QuiverSandbox {
   ///
   /// The sandbox enforces:
   /// - Read access scoped to [databasePath], script directory, and [migrationsPath]
-  /// - Write access scoped to [databasePath] and [outputDir]
+  /// - Write access scoped to [databasePath]
   /// - Network access scoped to npm registries (registry.npmjs.org, esm.sh)
   /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
   /// - Environment variable access denied
@@ -79,7 +77,6 @@ class QuiverSandbox {
   Future<int> execute({
     required String scriptPath,
     required String databasePath,
-    required String outputDir,
     required void Function(String) writeInTerminal,
     List<String> args = const [],
     required String migrationsPath,
@@ -90,7 +87,6 @@ class QuiverSandbox {
     final flags = _permissionBuilder.buildFlags(
       scriptPath: scriptPath,
       databasePath: databasePath,
-      outputDir: outputDir,
       migrationsPath: migrationsPath,
       denoCacheDir: resolvedCacheDir,
     );
