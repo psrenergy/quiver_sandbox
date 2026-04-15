@@ -78,7 +78,6 @@ class QuiverSandbox {
     required String scriptPath,
     required String databasePath,
     required void Function(String) writeInTerminal,
-    List<String> args = const [],
     required String migrationsPath,
     Duration? timeout,
   }) async {
@@ -91,7 +90,13 @@ class QuiverSandbox {
       denoCacheDir: denoCacheDir,
     );
 
-    final arguments = ['run', ...flags, scriptPath, ...args];
+    final arguments = [
+      'run',
+      ...flags,
+      scriptPath,
+      databasePath,
+      migrationsPath,
+    ];
 
     final process = await Process.start(
       denoExecutable,

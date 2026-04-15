@@ -8,12 +8,9 @@ import 'package:test/test.dart';
 /// and generates a test for each one.
 ///
 /// [expectExitCode] is the matcher applied to the process exit code.
-/// [args] is called per-test to supply script arguments (receives databasePath
-/// and migrationsPath).
 void sandboxFixtureTests({
   required String folder,
   required Matcher expectExitCode,
-  List<String> Function(String databasePath, String migrationsPath)? args,
 }) {
   late String fixturesDir;
   late String databasePath;
@@ -57,7 +54,6 @@ void sandboxFixtureTests({
       final exitCode = await sandbox.execute(
         scriptPath: p.normalize(p.join(fixturesDir, name)),
         databasePath: databasePath,
-        args: args?.call(databasePath, migrationsPath) ?? const [],
         migrationsPath: migrationsPath,
         writeInTerminal: output.write,
       );

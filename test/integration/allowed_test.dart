@@ -9,6 +9,5 @@ void main() {
   sandboxFixtureTests(
     folder: 'allowed',
     expectExitCode: equals(0),
-    args: (databasePath, migrationsPath) => [databasePath, migrationsPath],
   );
 }
