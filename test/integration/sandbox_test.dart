@@ -9,9 +9,9 @@ import 'package:test/test.dart';
 
 void main() {
   late String fixturesDir;
-  late String tempOutputDir;
-  late String tempDbDir;
-  late String migrationsDir;
+  late String outputDir;
+  late String databasePath;
+  late String migrationsPath;
   late QuiverSandbox sandbox;
 
   setUpAll(() {
@@ -25,18 +25,18 @@ void main() {
 
   setUp(() {
     fixturesDir = p.normalize(p.absolute(p.join('test', 'fixtures')));
-    tempOutputDir = Directory.systemTemp
+    outputDir = Directory.systemTemp
         .createTempSync('quiver_sandbox_out_')
         .path;
-    tempDbDir = Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
-    migrationsDir = p.normalize(
+    databasePath = Directory.systemTemp.createTempSync('quiver_sandbox_db_').path;
+    migrationsPath = p.normalize(
       p.absolute(p.join('test', 'data', 'migrations')),
     );
     sandbox = QuiverSandbox();
   });
 
   tearDown(() {
-    for (final path in [tempOutputDir, tempDbDir]) {
+    for (final path in [outputDir, databasePath]) {
       final dir = Directory(path);
       if (dir.existsSync()) dir.deleteSync(recursive: true);
     }
@@ -54,16 +54,14 @@ void main() {
     final output = StringBuffer();
     final exitCode = await sandbox.execute(
       scriptPath: scriptPath,
-      databasePath: tempDbDir,
-      outputDir: tempOutputDir,
+      databasePath: databasePath,
+      outputDir: outputDir,
       args: args,
-      migrationsPath: migrationsDir,
+      migrationsPath: migrationsPath,
       writeInTerminal: output.write,
     );
     return (exitCode, output.toString());
   }
-
-  // -- Allowed: all fixtures in allowed/ should exit 0 ----------------------
 
   for (final fixture in [
     'hello.ts',
@@ -78,7 +76,7 @@ void main() {
     test('allowed: $fixture', () async {
       final (code, _) = await run(
         allowed(fixture),
-        args: [tempOutputDir, tempDbDir],
+        args: [outputDir, tempDbDir],
       );
       expect(code, 0);
     });
