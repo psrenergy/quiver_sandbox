@@ -92,10 +92,9 @@ class QuiverSandbox {
     required void Function(String) writeInTerminal,
     List<String> args = const [],
     required String migrationsPath,
-    String? denoCacheDir,
     Duration? timeout,
   }) async {
-    final resolvedCacheDir = denoCacheDir ?? await _resolveDenoCacheDir();
+    final resolvedCacheDir = await _resolveDenoCacheDir();
 
     final flags = _permissionBuilder.buildFlags(
       scriptPath: scriptPath,

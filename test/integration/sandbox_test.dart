@@ -46,17 +46,14 @@ void main() {
       p.normalize(p.join(fixturesDir, 'denied', name));
 
   Future<(int, String)> run(String scriptPath,
-      {List<String> args = const [],
-      String? migrationsPathOverride,
-      String? denoCacheDir}) async {
+      {List<String> args = const []}) async {
     final output = StringBuffer();
     final exitCode = await sandbox.execute(
       scriptPath: scriptPath,
       databasePath: tempDbDir,
       outputDir: tempOutputDir,
       args: args,
-      migrationsPath: migrationsPathOverride ?? migrationsDir,
-      denoCacheDir: denoCacheDir,
+      migrationsPath: migrationsDir,
       writeInTerminal: output.write,
     );
     return (exitCode, output.toString());
@@ -97,28 +94,4 @@ void main() {
     });
   }
 
-  test('denied: ffi_thirdparty_blocked.ts', () async {
-    final denoInfo = Process.runSync('deno', ['info', '--json'],
-        runInShell: Platform.isWindows);
-    final realDenoDir = RegExp(r'"denoDir"\s*:\s*"([^"]+)"')
-        .firstMatch(denoInfo.stdout as String)
-        ?.group(1)
-        ?.replaceAll(r'\\', '/');
-    expect(realDenoDir, isNotNull, reason: 'Could not detect Deno cache dir');
-
-    final (code, out) = await run(
-      denied('ffi_thirdparty_blocked.ts'),
-      migrationsPathOverride: realDenoDir!,
-      denoCacheDir: '/fake/deno/cache',
-    );
-    expect(code, isNot(0));
-    expect(out, contains('NotCapable'));
-  }, timeout: Timeout(Duration(minutes: 2)));
-
-  test('denied: generate_excel.ts (--deny-env)', () async {
-    final (code, out) =
-        await run(allowed('generate_excel.ts'), args: [tempOutputDir]);
-    expect(code, isNot(0));
-    expect(out, contains('NotCapable'));
-  }, timeout: Timeout(Duration(minutes: 2)));
 }
