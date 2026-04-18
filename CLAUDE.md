@@ -1,6 +1,6 @@
 # QuiverSandbox
 
-Dart library that executes user-authored and AI-generated JS/TS scripts inside Deno's permission-scoped sandbox. Scripts access QuiverDB databases (`npm:quiverdb@0.6.2`, which uses Koffi FFI for SQLite) and generate HTML dashboards, PDF reports, and Excel files.
+Dart library that executes user-authored and AI-generated JS/TS scripts inside Deno's permission-scoped sandbox. Scripts access QuiverDB databases (`jsr:@psrenergy/quiver`, a Deno-native package) and generate HTML dashboards, PDF reports, and Excel files.
 
 ## Commands
 
@@ -20,13 +20,13 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 ### Allowed (scoped)
 - `--allow-read`: databasePath, scriptDir, migrationsPath, denoCacheDir (auto-detected)
 - `--allow-write`: databasePath
-- `--allow-net`: npm registries (registry.npmjs.org, esm.sh)
-- `--allow-ffi`: databasePath, denoCacheDir (auto-detected, Koffi native binaries)
-- `--allow-env`: scoped to MIGRATIONS_DIR, NODE_DEBUG, NODE_ENV, BLUEBIRD_*, READABLE_STREAM, GRACEFUL_FS_PLATFORM, TEST_GRACEFUL_FS_GLOBAL_PATCH
-- `--allow-sys`: always (Koffi/QuiverDB needs OS/arch detection)
+- `--allow-net`: JSR registry (jsr.io)
+- `--allow-env`: MIGRATIONS_DIR
+- `--allow-sys`: always
 
 ### Denied
-- `--deny-run`: always (no subprocess spawning)
+- `--deny-run`: no subprocess spawning
+- `--deny-ffi`: no native libraries (QuiverDB is Deno-native)
 
 ## Testing
 

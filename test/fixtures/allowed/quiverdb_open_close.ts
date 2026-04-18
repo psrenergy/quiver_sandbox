@@ -1,4 +1,4 @@
-import { Database } from "npm:quiverdb@0.6.2";
+import { Database } from "jsr:@psrenergy/quiver";
 
 const MIGRATIONS = Deno.env.get("MIGRATIONS_DIR")!;
 

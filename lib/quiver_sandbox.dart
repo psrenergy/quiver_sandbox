@@ -9,10 +9,11 @@ import 'package:path/path.dart' as p;
 /// Builds the Deno permission flags for the QuiverSandbox.
 ///
 /// Security settings are hardcoded:
-/// - Network: registry.npmjs.org, esm.sh
-/// - Env: denied (no environment variable access)
-/// - Sys: allowed (Koffi/QuiverDB needs OS/arch detection)
+/// - Network: jsr.io
+/// - Env: MIGRATIONS_DIR only
+/// - Sys: allowed
 /// - Run: denied (no subprocess spawning)
+/// - FFI: denied (QuiverDB is Deno-native, no native libraries needed)
 class PermissionBuilder {
   const PermissionBuilder();
 
@@ -31,15 +32,14 @@ class PermissionBuilder {
 
     final scriptDir = p.dirname(scriptPath);
     final readPaths = [databasePath, scriptDir, migrationsPath, ?denoCacheDir];
-    final ffiPaths = [databasePath, ?denoCacheDir];
 
     return [
       '--allow-read=${readPaths.join(',')}',
       '--allow-write=$databasePath',
-      '--allow-net=registry.npmjs.org,esm.sh',
-      '--allow-ffi=${ffiPaths.join(',')}',
+      '--allow-net=jsr.io',
       '--deny-run',
-      '--allow-env=MIGRATIONS_DIR,READABLE_STREAM,GRACEFUL_FS_PLATFORM,TEST_GRACEFUL_FS_GLOBAL_PATCH,NODE_DEBUG,BLUEBIRD_DEBUG,BLUEBIRD_WARNINGS,BLUEBIRD_LONG_STACK_TRACES,BLUEBIRD_W_FORGOTTEN_RETURN,NODE_ENV',
+      '--deny-ffi',
+      '--allow-env=MIGRATIONS_DIR',
       '--allow-sys',
     ];
   }
@@ -69,10 +69,10 @@ class QuiverSandbox {
   /// The sandbox enforces:
   /// - Read access scoped to [databasePath], script directory, and [migrationsPath]
   /// - Write access scoped to [databasePath]
-  /// - Network access scoped to npm registries (registry.npmjs.org, esm.sh)
-  /// - FFI access scoped to [databasePath] and Deno cache (for Koffi/QuiverDB)
-  /// - Environment variable access denied
-  /// - System info access allowed (Koffi/QuiverDB needs OS/arch detection)
+  /// - Network access scoped to the JSR registry (jsr.io)
+  /// - FFI access denied (QuiverDB is Deno-native)
+  /// - Environment variable access scoped to MIGRATIONS_DIR
+  /// - System info access allowed
   /// - Subprocess spawning denied
   Future<int> execute({
     required String scriptPath,
