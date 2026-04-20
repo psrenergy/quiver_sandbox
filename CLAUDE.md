@@ -24,6 +24,7 @@ Split by responsibility under `lib/src/`:
 - `events.dart` — sealed `SandboxEvent` hierarchy: `OutputChunkEvent`, `ProcessStartedEvent`, `ProcessExitedEvent`, `PermissionViolationEvent`, `TimeoutEvent`, `OutputCapEvent`.
 - `runner.dart` — `SandboxRunner.run`: `Process.start` + timeout + output cap + stderr-to-event parsing. On Windows uses `taskkill /F /T /PID` for tree-kill so killing the shell wrapper also terminates the grandchild `deno.exe`.
 - `deno_info.dart` — memoized `resolveDenoCacheDir` via `deno info --json`.
+- `bundled_lockfile.dart` — resolves the absolute path of `lockfile/deno.lock` via `Isolate.resolvePackageUri`; exposed on `QuiverSandbox` as `resolveBundledLockfilePath()`.
 
 Barrel (`lib/quiver_sandbox.dart`) re-exports `SandboxPolicy`, `SandboxRequest`, `SandboxResult`, `TerminationReason`, the `SandboxEvent` family, and `QuiverSandbox`.
 
@@ -50,18 +51,29 @@ Denied:
 - `timeout` (default 30s): wall-clock limit. On expiry, the runner kills the tree and reports `TerminationReason.timedOut` via `TimeoutEvent`.
 - `maxOutputBytes` (default 10 MB): combined stdout+stderr. On overflow, the runner kills the tree and reports `TerminationReason.outputCapExceeded` via `OutputCapEvent`.
 
-## Lockfile: division of responsibility
+## Lockfile
 
-The package ships the **mechanism** (how to enforce `--frozen` against a given lockfile), not the **data** (what's actually in the allowlist). Two lockfiles exist:
+A single canonical lockfile lives at **`lockfile/deno.lock`** at the package root. It covers every import used by the permit fixtures and (by design) is also the allowlist the host app consumes in production — there is exactly one consumer, so a single source of truth is simpler than splitting test and prod.
 
-- **This repo's `test/data/deno.lock`** — covers the permit fixtures' imports (`jsr:@psrenergy/quiver`, `npm:exceljs`, `npm:pdf-lib`, transitive deps). Exists purely to make the sandbox's frozen-mode behavior testable. Regenerate with:
-  ```
-  deno cache --lock=test/data/deno.lock --frozen=false \
-    test/fixtures/permit/quiverdb_open_close.ts \
-    test/fixtures/permit/generate_excel.ts \
-    test/fixtures/permit/generate_pdf.ts
-  ```
-- **The app's production lockfile** — lives in the app repo, alongside whatever scripts the app actually runs. The app passes its path to `SandboxPolicy(lockfilePath: ...)`. This package never sees it.
+The host app resolves the absolute path via the package-shipped helper:
+
+```dart
+final policy = SandboxPolicy(
+  lockfilePath: await QuiverSandbox.resolveBundledLockfilePath(),
+);
+```
+
+Regenerate after adding a new import:
+```
+deno cache --lock=lockfile/deno.lock --frozen=false \
+  test/fixtures/permit/quiverdb_open_close.ts \
+  test/fixtures/permit/generate_excel.ts \
+  test/fixtures/permit/generate_pdf.ts
+```
+
+Commit the updated lockfile. The app picks it up on next build.
+
+**Known caveat**: `resolveBundledLockfilePath` uses `Isolate.resolvePackageUri`, which works for `dart run`, `dart test`, and `path:` deps but not AOT snapshots. Production distribution of the host app as a compiled binary would need a different asset-bundling strategy — out of scope for the current POC.
 
 ## Testing layout
 

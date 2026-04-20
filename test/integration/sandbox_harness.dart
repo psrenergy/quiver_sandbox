@@ -11,24 +11,31 @@ typedef ResultVerifier =
       List<SandboxEvent> events,
     );
 
+typedef PolicyBuilder = Future<SandboxPolicy> Function();
+
 /// Discovers every `.ts` fixture under `test/fixtures/<folder>/` (excluding
 /// those beginning with `_`) and generates a test per fixture.
 ///
 /// Each test is run with a fresh temp `workingDirectory` that is deleted in
 /// `tearDown`. The [verify] callback receives the terminal result, the
 /// captured output text, and the list of events emitted during the run.
+///
+/// [policyBuilder], when provided, is awaited once in `setUpAll` and the
+/// resulting policy is reused for every fixture. Async so callers can
+/// resolve `Isolate`-backed asset paths before the suite runs.
 void sandboxFixtureTests({
   required String folder,
   required ResultVerifier verify,
-  SandboxPolicy? policy,
+  PolicyBuilder? policyBuilder,
   Duration timeout = const Duration(seconds: 30),
   int maxOutputBytes = 10 * 1024 * 1024,
 }) {
   late String workingDirectory;
   late String migrationsPath;
   late QuiverSandbox sandbox;
+  SandboxPolicy? resolvedPolicy;
 
-  setUpAll(() {
+  setUpAll(() async {
     final probe = Process.runSync(
       'deno',
       ['--version'],
@@ -37,6 +44,7 @@ void sandboxFixtureTests({
     if (probe.exitCode != 0) {
       throw StateError('Deno is not installed or not on PATH');
     }
+    resolvedPolicy = policyBuilder == null ? null : await policyBuilder();
   });
 
   setUp(() {
@@ -46,7 +54,9 @@ void sandboxFixtureTests({
     migrationsPath = p.normalize(
       p.absolute(p.join('test', 'data', 'migrations')),
     );
-    sandbox = QuiverSandbox(defaultPolicy: policy ?? const SandboxPolicy());
+    sandbox = QuiverSandbox(
+      defaultPolicy: resolvedPolicy ?? const SandboxPolicy(),
+    );
   });
 
   tearDown(() {

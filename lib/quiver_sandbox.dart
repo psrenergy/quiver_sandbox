@@ -6,6 +6,7 @@
 /// completed, timed out, output cap exceeded, etc.
 library;
 
+import 'src/bundled_lockfile.dart' as bundled_lockfile;
 import 'src/deno_info.dart';
 import 'src/policy.dart';
 import 'src/request.dart';
@@ -38,6 +39,14 @@ final class QuiverSandbox {
 
   /// Policy used when [SandboxRequest.policy] is omitted.
   final SandboxPolicy defaultPolicy;
+
+  /// Absolute filesystem path to the lockfile that ships with this package
+  /// (`lockfile/deno.lock`). Feed the result to [SandboxPolicy.lockfilePath]
+  /// to run scripts under the package's canonical allowlist.
+  ///
+  /// See [bundled_lockfile.resolveBundledLockfilePath] for caveats.
+  static Future<String> resolveBundledLockfilePath() =>
+      bundled_lockfile.resolveBundledLockfilePath();
 
   /// Executes [request]. Returns a [SandboxResult] describing how the
   /// process ended and how much output it produced.

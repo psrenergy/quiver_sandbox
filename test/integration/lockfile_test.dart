@@ -24,7 +24,7 @@ void main() {
     }
   });
 
-  setUp(() {
+  setUp(() async {
     workingDirectory = Directory.systemTemp
         .createTempSync('qsb_lockfile_')
         .path;
@@ -36,9 +36,7 @@ void main() {
         p.join('test', 'fixtures', 'lockfile', 'untrusted_import.ts'),
       ),
     );
-    lockfile = p.normalize(
-      p.absolute(p.join('test', 'data', 'deno.lock')),
-    );
+    lockfile = await QuiverSandbox.resolveBundledLockfilePath();
   });
 
   tearDown(() {
