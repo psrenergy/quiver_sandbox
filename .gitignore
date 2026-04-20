@@ -8,3 +8,6 @@ pubspec.lock
 
 quiver_database.log
 test.db
+
+coverage/
+.psrenergy-quiver-cache/

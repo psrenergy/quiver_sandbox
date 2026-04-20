@@ -1,5 +1,8 @@
 # quiver_sandbox
 
+[![CI](https://github.com/psrenergy/quiver_sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/psrenergy/quiver_sandbox/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/psrenergy/quiver_sandbox/branch/master/graph/badge.svg)](https://codecov.io/gh/psrenergy/quiver_sandbox)
+
 Internal Dart package for the PSR app that executes JS/TS scripts inside Deno's permission-scoped sandbox. Not published to pub.dev; depended on via `path:` from the host app and exists as a separately-packaged library so the sandbox's behavior can be tested in isolation.
 
 Scripts access QuiverDB databases (`jsr:@psrenergy/quiver@^0.7.4`) and produce artefacts (HTML, JSON, Excel, PDF) inside an ephemeral working directory.
