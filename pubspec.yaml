@@ -1,6 +1,7 @@
 name: quiver_sandbox
-description: A Dart library for running Deno scripts in a permission-scoped sandbox.
+description: Internal sandbox runner for Deno scripts. Extracted from the host app for test isolation; not published.
 version: 1.0.0
+publish_to: none
 repository: https://github.com/psrenergy/quiver_sandbox
 
 environment:

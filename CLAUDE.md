@@ -1,8 +1,10 @@
 # QuiverSandbox
 
-Dart library that executes user-authored and AI-generated JS/TS scripts inside Deno's permission-scoped sandbox. Scripts access QuiverDB databases (`jsr:@psrenergy/quiver@^0.7.4`, a Deno-native package whose loader downloads its bundled native library into `{cwd}/.psrenergy-quiver-cache/` on first use).
+**Internal component extracted as a Dart package for test isolation.** Not a public library, not intended for distribution. The host app depends on it directly; this repo exists so the sandbox behavior can be tested without spinning up the whole app.
 
-**Design stance**: secure-by-default, permissive by opt-in. Built-in hardening covers the main threats a POC cares about: lockfile-enforced module allowlist, wall-clock timeout, output-size cap, scoped filesystem/network access, and structured events for every violation.
+Executes JS/TS scripts inside Deno's permission-scoped sandbox. Scripts access QuiverDB databases (`jsr:@psrenergy/quiver@^0.7.4`, a Deno-native package whose loader downloads its bundled native library into `{cwd}/.psrenergy-quiver-cache/` on first use).
+
+**Design stance**: secure-by-default, permissive by explicit opt-in. Built-in hardening covers the threats a single-tenant desktop app cares about: lockfile-enforced module allowlist, wall-clock timeout, output-size cap, scoped filesystem/network access, and structured events for every violation.
 
 ## Commands
 
@@ -20,10 +22,12 @@ Split by responsibility under `lib/src/`:
 - `request.dart` — `SandboxRequest`: single input object for `QuiverSandbox.execute`. Validates path-absoluteness and positive byte cap at construction.
 - `result.dart` — `SandboxResult` and `TerminationReason` (enum: `completed`, `timedOut`, `outputCapExceeded`, `killed`, `startFailure`).
 - `events.dart` — sealed `SandboxEvent` hierarchy: `OutputChunkEvent`, `ProcessStartedEvent`, `ProcessExitedEvent`, `PermissionViolationEvent`, `TimeoutEvent`, `OutputCapEvent`.
-- `runner.dart` — `SandboxRunner.run`: `Process.start` + timeout + output cap + stderr-to-event parsing. On Windows uses `taskkill /F /T /PID` for tree-kill so that killing the shell wrapper also terminates the grandchild `deno.exe`.
+- `runner.dart` — `SandboxRunner.run`: `Process.start` + timeout + output cap + stderr-to-event parsing. On Windows uses `taskkill /F /T /PID` for tree-kill so killing the shell wrapper also terminates the grandchild `deno.exe`.
 - `deno_info.dart` — memoized `resolveDenoCacheDir` via `deno info --json`.
 
-Public API barrel (`lib/quiver_sandbox.dart`) re-exports `SandboxPolicy`, `SandboxRequest`, `SandboxResult`, `TerminationReason`, the `SandboxEvent` family, and the `QuiverSandbox` class.
+Barrel (`lib/quiver_sandbox.dart`) re-exports `SandboxPolicy`, `SandboxRequest`, `SandboxResult`, `TerminationReason`, the `SandboxEvent` family, and `QuiverSandbox`.
+
+The app depends on this package via local path (`dependencies: { quiver_sandbox: { path: ../quiver_sandbox } }` or similar) and wires its own `SandboxPolicy` with the app's production lockfile.
 
 ## Deno Permission Model
 
@@ -46,15 +50,27 @@ Denied:
 - `timeout` (default 30s): wall-clock limit. On expiry, the runner kills the tree and reports `TerminationReason.timedOut` via `TimeoutEvent`.
 - `maxOutputBytes` (default 10 MB): combined stdout+stderr. On overflow, the runner kills the tree and reports `TerminationReason.outputCapExceeded` via `OutputCapEvent`.
 
+## Lockfile: division of responsibility
+
+The package ships the **mechanism** (how to enforce `--frozen` against a given lockfile), not the **data** (what's actually in the allowlist). Two lockfiles exist:
+
+- **This repo's `test/data/deno.lock`** — covers the permit fixtures' imports (`jsr:@psrenergy/quiver`, `npm:exceljs`, `npm:pdf-lib`, transitive deps). Exists purely to make the sandbox's frozen-mode behavior testable. Regenerate with:
+  ```
+  deno cache --lock=test/data/deno.lock --frozen=false \
+    test/fixtures/permit/quiverdb_open_close.ts \
+    test/fixtures/permit/generate_excel.ts \
+    test/fixtures/permit/generate_pdf.ts
+  ```
+- **The app's production lockfile** — lives in the app repo, alongside whatever scripts the app actually runs. The app passes its path to `SandboxPolicy(lockfilePath: ...)`. This package never sees it.
+
 ## Testing layout
 
-- `test/fixtures/permit/` — scripts that must exit 0 under the default policy + project lockfile. Covers minimal sandbox surface: `empty_script`, `hello`, `write_file`, `generate_json`, `import_local_module`, `quiverdb_open_close`, plus `_helper.ts` (not run directly).
-- `test/fixtures/forbid/` — scripts that must exit non-zero. Covers every denial path: env read/write, net, read outside sandbox, path traversal, subprocess, FFI outside allowed, npm install-script, `--allow-sys` denied, syntax error, runtime error.
+- `test/fixtures/permit/` — scripts that must exit 0 under the default policy + project lockfile. Realistic sandbox surface: `empty_script`, `hello`, `write_file`, `generate_json`, `generate_html`, `generate_excel` (uses `npm:exceljs`), `generate_pdf` (uses `npm:pdf-lib`), `import_local_module`, `quiverdb_open_close`, plus `_helper.ts` (not run directly).
+- `test/fixtures/forbid/` — scripts that must exit non-zero. Every denial path: env read/write, net, read outside sandbox, path traversal, subprocess, FFI outside allowed, npm install-script, `--allow-sys` denied, syntax error, runtime error.
 - `test/fixtures/limits/` — scripts that exceed limits: `infinite_loop.ts` (blows `timeout`), `output_flood.ts` (blows `maxOutputBytes`).
 - `test/fixtures/lockfile/` — `untrusted_import.ts` (`npm:left-pad@1.3.0`) — fails under `--frozen`, succeeds under `allowArbitraryPackages: true`.
-- `test/data/deno.lock` — committed lockfile for the permit fixtures. Regenerate with `deno cache --lock=test/data/deno.lock --frozen=false test/fixtures/permit/quiverdb_open_close.ts`.
 - `test/data/migrations/` — fixtures consumed by `quiverdb_open_close.ts`.
-- `test/unit/` — pure-Dart `policy_test.dart`, plus `runner_test.dart` (uses Deno for minimal probes).
+- `test/unit/` — pure-Dart `policy_test.dart` plus `runner_test.dart` (needs Deno for minimal probes).
 - `test/integration/` — harness + `permit_test.dart`, `forbid_test.dart`, `limits_test.dart`, `lockfile_test.dart`.
 
 `sandbox_harness.dart` discovers `.ts` fixtures in a folder and runs each through `QuiverSandbox.execute`, exposing the result + output + event list to a `verify` callback.
