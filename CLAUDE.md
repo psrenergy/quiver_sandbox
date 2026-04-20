@@ -63,15 +63,19 @@ final policy = SandboxPolicy(
 );
 ```
 
-Regenerate after adding a new import:
+Regenerate with the dev tool:
+
 ```
-deno cache --lock=lockfile/deno.lock --frozen=false \
-  test/fixtures/permit/quiverdb_open_close.ts \
-  test/fixtures/permit/generate_excel.ts \
-  test/fixtures/permit/generate_pdf.ts
+# After editing a permit fixture:
+dart run tool/add_package.dart
+
+# Pre-approve a spec without writing a fixture yet:
+dart run tool/add_package.dart npm:dayjs@1.11.10 jsr:@std/cli@^1.0.0
 ```
 
-Commit the updated lockfile. The app picks it up on next build.
+The tool globs `test/fixtures/permit/*.ts` (non-underscore), optionally adds any specs passed as args via a temp import file, deletes and rewrites `lockfile/deno.lock` from that full input set (Deno's `--frozen=false` only appends; explicit delete-then-regenerate prunes stale entries). Commit the updated lockfile; the host app picks it up on next build.
+
+For long-lived allowlist entries, **also add a permit fixture that imports the package** so it's exercised by the test suite — an unused lockfile entry is an un-verified allowlist entry.
 
 **Known caveat**: `resolveBundledLockfilePath` uses `Isolate.resolvePackageUri`, which works for `dart run`, `dart test`, and `path:` deps but not AOT snapshots. Production distribution of the host app as a compiled binary would need a different asset-bundling strategy — out of scope for the current POC.
 
