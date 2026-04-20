@@ -27,7 +27,9 @@ import 'package:path/path.dart' as p;
 Future<void> main(List<String> args) async {
   final projectRoot = _findProjectRoot();
   if (projectRoot == null) {
-    stderr.writeln('error: run this script from inside the quiver_sandbox package.');
+    stderr.writeln(
+      'error: run this script from inside the quiver_sandbox package.',
+    );
     exit(2);
   }
 
@@ -39,14 +41,15 @@ Future<void> main(List<String> args) async {
     exit(2);
   }
 
-  final fixtures = permitDir
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.ts'))
-      .where((f) => !p.basename(f.path).startsWith('_'))
-      .map((f) => f.path)
-      .toList()
-    ..sort();
+  final fixtures =
+      permitDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.ts'))
+          .where((f) => !p.basename(f.path).startsWith('_'))
+          .map((f) => f.path)
+          .toList()
+        ..sort();
 
   File? tempFile;
   if (args.isNotEmpty) {
@@ -78,17 +81,13 @@ Future<void> main(List<String> args) async {
     lockfileHandle.deleteSync();
   }
 
-  final result = await Process.run(
-    'deno',
-    [
-      'cache',
-      '--lock=$lockfile',
-      '--frozen=false',
-      ...fixtures,
-      if (tempFile != null) tempFile.path,
-    ],
-    runInShell: Platform.isWindows,
-  );
+  final result = await Process.run('deno', [
+    'cache',
+    '--lock=$lockfile',
+    '--frozen=false',
+    ...fixtures,
+    if (tempFile != null) tempFile.path,
+  ], runInShell: Platform.isWindows);
 
   stdout.write(result.stdout);
   stderr.write(result.stderr);
@@ -106,8 +105,10 @@ Future<void> main(List<String> args) async {
     exit(result.exitCode);
   }
 
-  stdout.writeln('\nok: $lockfile updated. Commit it and remember to add a '
-      'permit fixture that imports any new spec so it stays exercised by tests.');
+  stdout.writeln(
+    '\nok: $lockfile updated. Commit it and remember to add a '
+    'permit fixture that imports any new spec so it stays exercised by tests.',
+  );
 }
 
 String? _findProjectRoot() {

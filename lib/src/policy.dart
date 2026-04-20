@@ -10,11 +10,7 @@ library;
 import 'package:path/path.dart' as p;
 
 /// Outbound hosts the sandboxed process may reach.
-const Set<String> allowedHosts = {
-  'jsr.io',
-  'registry.npmjs.org',
-  'esm.sh',
-};
+const Set<String> allowedHosts = {'jsr.io', 'registry.npmjs.org', 'esm.sh'};
 
 /// Env vars the sandboxed process may read.
 ///

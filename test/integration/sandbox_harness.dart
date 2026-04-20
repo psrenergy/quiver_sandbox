@@ -28,11 +28,9 @@ void sandboxFixtureTests({
   late QuiverSandbox sandbox;
 
   setUpAll(() {
-    final probe = Process.runSync(
-      'deno',
-      ['--version'],
-      runInShell: Platform.isWindows,
-    );
+    final probe = Process.runSync('deno', [
+      '--version',
+    ], runInShell: Platform.isWindows);
     if (probe.exitCode != 0) {
       throw StateError('Deno is not installed or not on PATH');
     }

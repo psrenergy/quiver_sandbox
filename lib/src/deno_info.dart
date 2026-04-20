@@ -34,11 +34,10 @@ Future<String?> resolveDenoCacheDir(String denoExecutable) async {
 
 Future<String?> _lookup(String denoExecutable) async {
   try {
-    final result = await Process.run(
-      denoExecutable,
-      ['info', '--json'],
-      runInShell: Platform.isWindows,
-    );
+    final result = await Process.run(denoExecutable, [
+      'info',
+      '--json',
+    ], runInShell: Platform.isWindows);
     if (result.exitCode != 0) return null;
     final info = jsonDecode(result.stdout as String) as Map<String, dynamic>;
     return info['denoDir'] as String?;

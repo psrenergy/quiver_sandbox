@@ -46,7 +46,10 @@ final class ProcessExitedEvent extends SandboxEvent {
 /// error format. [capability] is e.g. `"net"`, `"read"`, `"ffi"`, etc.
 /// [detail] is the quoted target (path, host, env var name) when present.
 final class PermissionViolationEvent extends SandboxEvent {
-  const PermissionViolationEvent({required this.capability, required this.detail});
+  const PermissionViolationEvent({
+    required this.capability,
+    required this.detail,
+  });
 
   final String capability;
   final String detail;

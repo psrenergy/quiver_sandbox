@@ -16,11 +16,9 @@ void main() {
   late String scriptPath;
 
   setUpAll(() {
-    final probe = Process.runSync(
-      'deno',
-      ['--version'],
-      runInShell: Platform.isWindows,
-    );
+    final probe = Process.runSync('deno', [
+      '--version',
+    ], runInShell: Platform.isWindows);
     if (probe.exitCode != 0) {
       throw StateError('Deno is not installed or not on PATH');
     }
@@ -34,9 +32,7 @@ void main() {
       p.absolute(p.join('test', 'data', 'migrations')),
     );
     scriptPath = p.normalize(
-      p.absolute(
-        p.join('test', 'fixtures', 'lockfile', 'untrusted_import.ts'),
-      ),
+      p.absolute(p.join('test', 'fixtures', 'lockfile', 'untrusted_import.ts')),
     );
   });
 

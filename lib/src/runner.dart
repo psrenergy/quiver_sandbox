@@ -73,10 +73,12 @@ class SandboxRunner {
       );
     } on ProcessException {
       stopwatch.stop();
-      onEvent?.call(const ProcessExitedEvent(
-        exitCode: -1,
-        reason: TerminationReason.startFailure,
-      ));
+      onEvent?.call(
+        const ProcessExitedEvent(
+          exitCode: -1,
+          reason: TerminationReason.startFailure,
+        ),
+      );
       return SandboxResult(
         exitCode: -1,
         elapsed: stopwatch.elapsed,
@@ -105,10 +107,12 @@ class SandboxRunner {
       if (isStderr) {
         final match = _violationRegex.firstMatch(text);
         if (match != null) {
-          onEvent?.call(PermissionViolationEvent(
-            capability: match.group(1)!,
-            detail: match.group(2) ?? '',
-          ));
+          onEvent?.call(
+            PermissionViolationEvent(
+              capability: match.group(1)!,
+              detail: match.group(2) ?? '',
+            ),
+          );
         }
       }
     }
