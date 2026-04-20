@@ -5,7 +5,8 @@
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@^1.1.4": "1.1.4",
     "npm:exceljs@4.4.0": "4.4.0",
-    "npm:pdf-lib@1.17.1": "1.17.1"
+    "npm:pdf-lib@1.17.1": "1.17.1",
+    "npm:simple-statistics@7.8.9": "7.8.9"
   },
   "jsr": {
     "@psrenergy/quiver@0.7.4": {
@@ -441,6 +442,9 @@
     },
     "setimmediate@1.0.5": {
       "integrity": "sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA=="
+    },
+    "simple-statistics@7.8.9": {
+      "integrity": "sha512-YT6MLqYsz7y1rQZOLFlOCCgSRpCi6bqY417yhoOLI7aVoBi29dD39EPrOE03W9DY25H0J0jizVsHZnkLzyGJFg=="
     },
     "string_decoder@1.1.1": {
       "integrity": "sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==",
