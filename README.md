@@ -1,39 +1,138 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# quiver_sandbox
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages). 
+Internal Dart package for the PSR app that executes JS/TS scripts inside Deno's permission-scoped sandbox. Not published to pub.dev; depended on via `path:` from the host app and exists as a separately-packaged library so the sandbox's behavior can be tested in isolation.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages). 
--->
+Scripts access QuiverDB databases (`jsr:@psrenergy/quiver@^0.7.4`) and produce artefacts (HTML, JSON, Excel, PDF) inside an ephemeral working directory.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## Requirements
 
-## Features
+- Dart SDK `^3.11.1`
+- [Deno](https://deno.com/) `2.7+` on `PATH`
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+## Quick start
 
 ```dart
-const like = 'sample';
+import 'dart:io';
+import 'package:quiver_sandbox/quiver_sandbox.dart';
+
+Future<void> main() async {
+  // Fresh workspace per execution. Deleted at the end.
+  final workdir = Directory.systemTemp.createTempSync('quiver_run_');
+
+  // Build a policy that enforces the package's canonical lockfile.
+  final policy = SandboxPolicy(
+    lockfilePath: await QuiverSandbox.resolveBundledLockfilePath(),
+  );
+
+  final sandbox = QuiverSandbox(defaultPolicy: policy);
+
+  final result = await sandbox.execute(
+    SandboxRequest(
+      scriptPath: '/abs/path/to/user_script.ts',
+      workingDirectory: workdir.path,
+      migrationsPath: '/abs/path/to/migrations',
+      timeout: const Duration(seconds: 30),
+      maxOutputBytes: 10 * 1024 * 1024, // 10 MB
+      onOutput: stdout.write,
+      onEvent: (e) => stdout.writeln('[event] ${e.runtimeType}'),
+    ),
+  );
+
+  print('exit=${result.exitCode} reason=${result.reason} '
+      '(${result.elapsed.inMilliseconds} ms, ${result.outputBytesEmitted} bytes)');
+
+  workdir.deleteSync(recursive: true);
+}
 ```
 
-## Additional information
+A minimal `user_script.ts`:
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+```ts
+import { Database } from "jsr:@psrenergy/quiver@^0.7.4";
+
+const db = Database.fromMigrations("report.db", Deno.env.get("MIGRATIONS_DIR")!);
+// ...read/write/query...
+db.close();
+```
+
+The sandbox passes `MIGRATIONS_DIR` to the subprocess automatically.
+
+## What the default policy enforces
+
+| Permission                | Scope                                                                                           |
+|---------------------------|-------------------------------------------------------------------------------------------------|
+| `--allow-read`            | `workingDirectory`, script dir, `migrationsPath`, Deno cache dir                                |
+| `--allow-write`           | `workingDirectory` only                                                                         |
+| `--allow-net`             | `jsr.io`, `registry.npmjs.org`, `esm.sh`                                                        |
+| `--allow-ffi`             | unrestricted (Deno 2.x path-scoped FFI is broken for any real FFI package — see `CLAUDE.md`)    |
+| `--allow-env`             | `MIGRATIONS_DIR` + Node-compat probe vars (`READABLE_STREAM`, `BLUEBIRD_*`, `NODE_ENV`, …)      |
+| `--allow-sys`             | denied (opt-in via `SandboxPolicy(allowSys: true)`)                                             |
+| `--deny-run`              | always — no subprocess spawning from inside                                                     |
+| `--lock=... --frozen`     | emitted when `lockfilePath` is set and `allowArbitraryPackages` is false                        |
+
+`SandboxRequest.timeout` and `maxOutputBytes` enforce resource limits — exceeding either terminates the subprocess (tree-killed on Windows via `taskkill /F /T`) and marks the result with `TerminationReason.timedOut` or `outputCapExceeded`.
+
+## Observing execution
+
+Pass `onEvent` to receive the full `SandboxEvent` stream:
+
+- `ProcessStartedEvent { pid }`
+- `OutputChunkEvent { text, isStderr }`
+- `PermissionViolationEvent { capability, detail }` — parsed from Deno's `NotCapable: …` errors
+- `TimeoutEvent { elapsed }`
+- `OutputCapEvent { bytesEmitted }`
+- `ProcessExitedEvent { exitCode, reason }`
+
+Example: log every permission violation separately.
+
+```dart
+final violations = <PermissionViolationEvent>[];
+await sandbox.execute(SandboxRequest(
+  scriptPath: ...,
+  workingDirectory: ...,
+  migrationsPath: ...,
+  onEvent: (e) {
+    if (e is PermissionViolationEvent) violations.add(e);
+  },
+));
+for (final v in violations) {
+  print('script tried to use ${v.capability}${v.detail.isEmpty ? "" : ": ${v.detail}"}');
+}
+```
+
+## Allowing a new package
+
+Scripts imported under the default policy must resolve to specs pinned in `lockfile/deno.lock`. To allow a new package:
+
+```bash
+# After adding `import ... from "npm:newthing@1.2.3"` to a permit fixture:
+dart run tool/add_package.dart
+
+# Or pre-approve without a fixture (one-off):
+dart run tool/add_package.dart npm:newthing@1.2.3
+```
+
+Commit the updated `lockfile/deno.lock`. The host app picks it up on next build since it resolves the same file via `QuiverSandbox.resolveBundledLockfilePath()`.
+
+## Opting into a permissive policy (scoped)
+
+```dart
+// Dev mode: allow any import, skip lockfile validation.
+final devPolicy = SandboxPolicy(allowArbitraryPackages: true);
+await sandbox.execute(SandboxRequest(
+  ...,
+  policy: devPolicy,  // overrides defaultPolicy for this one request
+));
+```
+
+Every other permission stays tight. Only the lockfile enforcement is relaxed.
+
+## Testing
+
+```bash
+dart test                          # full suite (requires Deno)
+dart test test/unit/               # pure Dart + minimal Deno probes
+dart test test/integration/        # fixture-driven end-to-end
+```
+
+See `CLAUDE.md` for the architecture overview, fixture layout, and the full permission-model rationale.
