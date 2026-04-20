@@ -1,0 +1,25 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@psrenergy/quiver@~0.7.4": "0.7.4",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/path@^1.1.4": "1.1.4"
+  },
+  "jsr": {
+    "@psrenergy/quiver@0.7.4": {
+      "integrity": "25211746081092caab625971502e382328bb6db770dd5a0ee3c83c006f42ac73",
+      "dependencies": [
+        "jsr:@std/path"
+      ]
+    },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/path@1.1.4": {
+      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    }
+  }
+}

@@ -4,59 +4,82 @@ import 'package:path/path.dart' as p;
 import 'package:quiver_sandbox/quiver_sandbox.dart';
 import 'package:test/test.dart';
 
-/// Discovers all `.ts` fixtures in [folder] (relative to `test/fixtures/`)
-/// and generates a test for each one.
+typedef ResultVerifier =
+    void Function(
+      SandboxResult result,
+      StringBuffer output,
+      List<SandboxEvent> events,
+    );
+
+/// Discovers every `.ts` fixture under `test/fixtures/<folder>/` (excluding
+/// those beginning with `_`) and generates a test per fixture.
 ///
-/// [expectExitCode] is the matcher applied to the process exit code.
+/// Each test is run with a fresh temp `workingDirectory` that is deleted in
+/// `tearDown`. The [verify] callback receives the terminal result, the
+/// captured output text, and the list of events emitted during the run.
 void sandboxFixtureTests({
   required String folder,
-  required Matcher expectExitCode,
+  required ResultVerifier verify,
+  SandboxPolicy? policy,
+  Duration timeout = const Duration(seconds: 30),
+  int maxOutputBytes = 10 * 1024 * 1024,
 }) {
-  late String fixturesDir;
-  late String databasePath;
+  late String workingDirectory;
   late String migrationsPath;
   late QuiverSandbox sandbox;
 
   setUpAll(() {
-    final result = Process.runSync('deno', [
-      '--version',
-    ], runInShell: Platform.isWindows);
-    if (result.exitCode != 0) {
+    final probe = Process.runSync(
+      'deno',
+      ['--version'],
+      runInShell: Platform.isWindows,
+    );
+    if (probe.exitCode != 0) {
       throw StateError('Deno is not installed or not on PATH');
     }
   });
 
   setUp(() {
-    fixturesDir = p.normalize(p.absolute(p.join('test', 'fixtures', folder)));
-    databasePath = Directory.systemTemp
-        .createTempSync('quiver_sandbox_db_')
+    workingDirectory = Directory.systemTemp
+        .createTempSync('qsb_${folder}_')
         .path;
     migrationsPath = p.normalize(
       p.absolute(p.join('test', 'data', 'migrations')),
     );
-    sandbox = QuiverSandbox();
+    sandbox = QuiverSandbox(defaultPolicy: policy ?? const SandboxPolicy());
   });
 
   tearDown(() {
-    final dir = Directory(databasePath);
+    final dir = Directory(workingDirectory);
     if (dir.existsSync()) dir.deleteSync(recursive: true);
   });
 
-  final fixtures = Directory(
+  final fixtureDir = Directory(
     p.normalize(p.absolute(p.join('test', 'fixtures', folder))),
-  ).listSync().whereType<File>().where((f) => f.path.endsWith('.ts'));
+  );
+  final fixtures = fixtureDir
+      .listSync()
+      .whereType<File>()
+      .where((f) => f.path.endsWith('.ts'))
+      .where((f) => !p.basename(f.path).startsWith('_'));
 
   for (final fixture in fixtures) {
     final name = p.basename(fixture.path);
     test(name, () async {
       final output = StringBuffer();
-      final exitCode = await sandbox.execute(
-        scriptPath: p.normalize(p.join(fixturesDir, name)),
-        databasePath: databasePath,
-        migrationsPath: migrationsPath,
-        writeInTerminal: output.write,
+      final events = <SandboxEvent>[];
+      final result = await sandbox.execute(
+        SandboxRequest(
+          scriptPath: p.normalize(p.absolute(fixture.path)),
+          workingDirectory: workingDirectory,
+          migrationsPath: migrationsPath,
+          timeout: timeout,
+          maxOutputBytes: maxOutputBytes,
+          onOutput: output.write,
+          onEvent: events.add,
+        ),
       );
-      expect(exitCode, expectExitCode, reason: output.toString());
+      verify(result, output, events);
     });
   }
 }
