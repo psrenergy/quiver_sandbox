@@ -4,7 +4,6 @@ library;
 import 'package:path/path.dart' as p;
 
 import 'events.dart';
-import 'policy.dart';
 
 /// Single request to execute a Deno script inside the sandbox.
 ///
@@ -14,7 +13,6 @@ final class SandboxRequest {
     required this.scriptPath,
     required this.workingDirectory,
     required this.migrationsPath,
-    this.policy,
     this.timeout = const Duration(seconds: 30),
     this.maxOutputBytes = 10 * 1024 * 1024,
     this.onOutput,
@@ -45,9 +43,6 @@ final class SandboxRequest {
   /// `--allow-read`.
   final String migrationsPath;
 
-  /// Policy override. When `null`, [QuiverSandbox.defaultPolicy] applies.
-  final SandboxPolicy? policy;
-
   /// Maximum wall-clock duration. When reached, the runner kills the
   /// process and marks the result as [TerminationReason.timedOut].
   ///
@@ -68,8 +63,8 @@ final class SandboxRequest {
   final void Function(SandboxEvent event)? onEvent;
 
   /// Extra env vars to inject into the subprocess alongside `MIGRATIONS_DIR`.
-  /// Note: each key must also appear in [SandboxPolicy.allowedEnv], otherwise
-  /// the script can't read them (Deno denies at runtime).
+  /// Note: each key must also appear in the sandbox's fixed env allowlist,
+  /// otherwise the script can't read them (Deno denies at runtime).
   final Map<String, String>? extraEnv;
 
   void _validateAbsolute(String name, String value) {

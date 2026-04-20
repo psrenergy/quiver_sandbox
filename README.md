@@ -4,6 +4,8 @@ Internal Dart package for the PSR app that executes JS/TS scripts inside Deno's 
 
 Scripts access QuiverDB databases (`jsr:@psrenergy/quiver@^0.7.4`) and produce artefacts (HTML, JSON, Excel, PDF) inside an ephemeral working directory.
 
+**The security profile is fixed at the package level** — there is no `SandboxPolicy` knob on the public API. Every execution runs under the same scoped read/write, curated net/env allowlist, frozen lockfile, and resource limits. Tweaking the profile means editing this package, not the host app.
+
 ## Requirements
 
 - Dart SDK `^3.11.1`
@@ -16,15 +18,8 @@ import 'dart:io';
 import 'package:quiver_sandbox/quiver_sandbox.dart';
 
 Future<void> main() async {
-  // Fresh workspace per execution. Deleted at the end.
   final workdir = Directory.systemTemp.createTempSync('quiver_run_');
-
-  // Build a policy that enforces the package's canonical lockfile.
-  final policy = SandboxPolicy(
-    lockfilePath: await QuiverSandbox.resolveBundledLockfilePath(),
-  );
-
-  final sandbox = QuiverSandbox(defaultPolicy: policy);
+  final sandbox = QuiverSandbox();
 
   final result = await sandbox.execute(
     SandboxRequest(
@@ -32,7 +27,7 @@ Future<void> main() async {
       workingDirectory: workdir.path,
       migrationsPath: '/abs/path/to/migrations',
       timeout: const Duration(seconds: 30),
-      maxOutputBytes: 10 * 1024 * 1024, // 10 MB
+      maxOutputBytes: 10 * 1024 * 1024,
       onOutput: stdout.write,
       onEvent: (e) => stdout.writeln('[event] ${e.runtimeType}'),
     ),
@@ -57,18 +52,19 @@ db.close();
 
 The sandbox passes `MIGRATIONS_DIR` to the subprocess automatically.
 
-## What the default policy enforces
+## What the fixed policy enforces
 
-| Permission                | Scope                                                                                           |
-|---------------------------|-------------------------------------------------------------------------------------------------|
-| `--allow-read`            | `workingDirectory`, script dir, `migrationsPath`, Deno cache dir                                |
-| `--allow-write`           | `workingDirectory` only                                                                         |
-| `--allow-net`             | `jsr.io`, `registry.npmjs.org`, `esm.sh`                                                        |
-| `--allow-ffi`             | unrestricted (Deno 2.x path-scoped FFI is broken for any real FFI package — see `CLAUDE.md`)    |
-| `--allow-env`             | `MIGRATIONS_DIR` + Node-compat probe vars (`READABLE_STREAM`, `BLUEBIRD_*`, `NODE_ENV`, …)      |
-| `--allow-sys`             | denied (opt-in via `SandboxPolicy(allowSys: true)`)                                             |
-| `--deny-run`              | always — no subprocess spawning from inside                                                     |
-| `--lock=... --frozen`     | emitted when `lockfilePath` is set and `allowArbitraryPackages` is false                        |
+| Permission            | Scope                                                                                        |
+|-----------------------|----------------------------------------------------------------------------------------------|
+| `--allow-read`        | `workingDirectory`, script dir, `migrationsPath`, Deno cache dir                             |
+| `--allow-write`       | `workingDirectory` only                                                                      |
+| `--allow-net`         | `jsr.io`, `registry.npmjs.org`, `esm.sh`                                                     |
+| `--allow-ffi`         | unrestricted (Deno 2.x path-scoped FFI is broken for any real FFI package — see `CLAUDE.md`) |
+| `--allow-env`         | `MIGRATIONS_DIR` + Node-compat probe vars (`READABLE_STREAM`, `BLUEBIRD_*`, `NODE_ENV`, …)   |
+| `--allow-sys`         | denied                                                                                       |
+| `--deny-run`          | always — no subprocess spawning from inside                                                  |
+| `--lock … --frozen`   | always — points at `lockfile/deno.lock` bundled with the package                             |
+| `--no-config`         | always — parent-directory `deno.json`/`deno.jsonc` auto-discovery is suppressed              |
 
 `SandboxRequest.timeout` and `maxOutputBytes` enforce resource limits — exceeding either terminates the subprocess (tree-killed on Windows via `taskkill /F /T`) and marks the result with `TerminationReason.timedOut` or `outputCapExceeded`.
 
@@ -87,7 +83,7 @@ Example: log every permission violation separately.
 
 ```dart
 final violations = <PermissionViolationEvent>[];
-await sandbox.execute(SandboxRequest(
+await QuiverSandbox().execute(SandboxRequest(
   scriptPath: ...,
   workingDirectory: ...,
   migrationsPath: ...,
@@ -102,30 +98,19 @@ for (final v in violations) {
 
 ## Allowing a new package
 
-Scripts imported under the default policy must resolve to specs pinned in `lockfile/deno.lock`. To allow a new package:
+Scripts must resolve to specs pinned in the package's `lockfile/deno.lock`. To allow a new package:
 
 ```bash
-# After adding `import ... from "npm:newthing@1.2.3"` to a permit fixture:
+# After adding `import … from "npm:newthing@1.2.3"` to a permit fixture:
 dart run tool/add_package.dart
 
 # Or pre-approve without a fixture (one-off):
 dart run tool/add_package.dart npm:newthing@1.2.3
 ```
 
-Commit the updated `lockfile/deno.lock`. The host app picks it up on next build since it resolves the same file via `QuiverSandbox.resolveBundledLockfilePath()`.
+Commit the updated `lockfile/deno.lock`. The host app picks it up on next build.
 
-## Opting into a permissive policy (scoped)
-
-```dart
-// Dev mode: allow any import, skip lockfile validation.
-final devPolicy = SandboxPolicy(allowArbitraryPackages: true);
-await sandbox.execute(SandboxRequest(
-  ...,
-  policy: devPolicy,  // overrides defaultPolicy for this one request
-));
-```
-
-Every other permission stays tight. Only the lockfile enforcement is relaxed.
+For long-lived allowlist entries, also add a permit fixture that imports the package so it's exercised by the test suite — an unused lockfile entry is an un-verified allowlist entry.
 
 ## Testing
 
