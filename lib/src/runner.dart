@@ -39,8 +39,9 @@ class SandboxRunner {
       try {
         await Process.run('taskkill', ['/F', '/T', '/PID', '${process.pid}']);
       } on ProcessException {
-        // Fall back — at worst the child stays orphaned for a bit.
-        unawaited(_forceKillTree(process));
+        // `taskkill` is shipped with Windows and effectively always present,
+        // so we never expect to land here. If it does, accept the failure —
+        // at worst the child stays orphaned for a bit.
       }
     } else {
       process.kill(ProcessSignal.sigkill);

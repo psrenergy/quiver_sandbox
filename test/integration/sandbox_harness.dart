@@ -11,6 +11,46 @@ typedef ResultVerifier =
       List<SandboxEvent> events,
     );
 
+/// Holds per-test state produced by [registerSandboxEnv]. Fields are populated
+/// by the `setUp` hook, so only read them from inside a `test(...)` body.
+final class SandboxTestEnv {
+  late String workingDirectory;
+  late String migrationsPath;
+}
+
+/// Registers the standard lifecycle hooks for sandbox integration tests:
+/// a `deno --version` probe (`setUpAll`), a fresh temp `workingDirectory`
+/// per test, and its recursive deletion in `tearDown`. [tempPrefix] is used
+/// to tag the temp dir name so parallel test runs are distinguishable.
+SandboxTestEnv registerSandboxEnv(String tempPrefix) {
+  final env = SandboxTestEnv();
+
+  setUpAll(() {
+    final probe = Process.runSync('deno', [
+      '--version',
+    ], runInShell: Platform.isWindows);
+    if (probe.exitCode != 0) {
+      throw StateError('Deno is not installed or not on PATH');
+    }
+  });
+
+  setUp(() {
+    env.workingDirectory = Directory.systemTemp
+        .createTempSync('qsb_${tempPrefix}_')
+        .path;
+    env.migrationsPath = p.normalize(
+      p.absolute(p.join('test', 'data', 'migrations')),
+    );
+  });
+
+  tearDown(() {
+    final dir = Directory(env.workingDirectory);
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+  });
+
+  return env;
+}
+
 /// Discovers every `.ts` fixture under `test/fixtures/<folder>/` (excluding
 /// those beginning with `_`) and generates a test per fixture.
 ///
@@ -23,33 +63,8 @@ void sandboxFixtureTests({
   Duration timeout = const Duration(seconds: 30),
   int maxOutputBytes = 10 * 1024 * 1024,
 }) {
-  late String workingDirectory;
-  late String migrationsPath;
-  late QuiverSandbox sandbox;
-
-  setUpAll(() {
-    final probe = Process.runSync('deno', [
-      '--version',
-    ], runInShell: Platform.isWindows);
-    if (probe.exitCode != 0) {
-      throw StateError('Deno is not installed or not on PATH');
-    }
-  });
-
-  setUp(() {
-    workingDirectory = Directory.systemTemp
-        .createTempSync('qsb_${folder}_')
-        .path;
-    migrationsPath = p.normalize(
-      p.absolute(p.join('test', 'data', 'migrations')),
-    );
-    sandbox = QuiverSandbox();
-  });
-
-  tearDown(() {
-    final dir = Directory(workingDirectory);
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
-  });
+  final env = registerSandboxEnv(folder);
+  final sandbox = QuiverSandbox();
 
   final fixtureDir = Directory(
     p.normalize(p.absolute(p.join('test', 'fixtures', folder))),
@@ -68,8 +83,8 @@ void sandboxFixtureTests({
       final result = await sandbox.execute(
         SandboxRequest(
           scriptPath: p.normalize(p.absolute(fixture.path)),
-          workingDirectory: workingDirectory,
-          migrationsPath: migrationsPath,
+          workingDirectory: env.workingDirectory,
+          migrationsPath: env.migrationsPath,
           timeout: timeout,
           maxOutputBytes: maxOutputBytes,
           onOutput: output.write,

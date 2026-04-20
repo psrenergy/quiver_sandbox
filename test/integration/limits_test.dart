@@ -1,38 +1,15 @@
 @TestOn('vm')
 library;
 
-import 'dart:io';
-
 import 'package:path/path.dart' as p;
 import 'package:quiver_sandbox/quiver_sandbox.dart';
 import 'package:test/test.dart';
 
+import 'sandbox_harness.dart';
+
 void main() {
-  late String workingDirectory;
-  late String migrationsPath;
-  late QuiverSandbox sandbox;
-
-  setUpAll(() {
-    final probe = Process.runSync('deno', [
-      '--version',
-    ], runInShell: Platform.isWindows);
-    if (probe.exitCode != 0) {
-      throw StateError('Deno is not installed or not on PATH');
-    }
-  });
-
-  setUp(() {
-    workingDirectory = Directory.systemTemp.createTempSync('qsb_limits_').path;
-    migrationsPath = p.normalize(
-      p.absolute(p.join('test', 'data', 'migrations')),
-    );
-    sandbox = QuiverSandbox();
-  });
-
-  tearDown(() {
-    final dir = Directory(workingDirectory);
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
-  });
+  final env = registerSandboxEnv('limits');
+  final sandbox = QuiverSandbox();
 
   test(
     'infinite_loop.ts → TerminationReason.timedOut',
@@ -45,8 +22,8 @@ void main() {
               p.join('test', 'fixtures', 'limits', 'infinite_loop.ts'),
             ),
           ),
-          workingDirectory: workingDirectory,
-          migrationsPath: migrationsPath,
+          workingDirectory: env.workingDirectory,
+          migrationsPath: env.migrationsPath,
           timeout: const Duration(seconds: 2),
           onEvent: events.add,
         ),
@@ -72,8 +49,8 @@ void main() {
           scriptPath: p.normalize(
             p.absolute(p.join('test', 'fixtures', 'limits', 'output_flood.ts')),
           ),
-          workingDirectory: workingDirectory,
-          migrationsPath: migrationsPath,
+          workingDirectory: env.workingDirectory,
+          migrationsPath: env.migrationsPath,
           timeout: const Duration(seconds: 30),
           maxOutputBytes: 200_000, // ~200 KB — hits cap fast.
           onEvent: events.add,
