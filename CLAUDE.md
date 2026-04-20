@@ -1,6 +1,6 @@
 # QuiverSandbox
 
-Dart library that executes user-authored and AI-generated JS/TS scripts inside Deno's permission-scoped sandbox. Scripts access QuiverDB databases (`jsr:@psrenergy/quiver`, a Deno-native package) and generate HTML dashboards, PDF reports, and Excel files.
+Dart library that executes user-authored and AI-generated JS/TS scripts inside Deno's permission-scoped sandbox. Scripts access QuiverDB databases (`jsr:@psrenergy/quiver@^0.7.4`, a Deno-native package whose loader downloads its bundled native library into `{cwd}/.psrenergy-quiver-cache/` on first use) and generate HTML dashboards, PDF reports, and Excel files.
 
 ## Commands
 
@@ -20,13 +20,13 @@ Dart library that executes user-authored and AI-generated JS/TS scripts inside D
 ### Allowed (scoped)
 - `--allow-read`: databasePath, scriptDir, migrationsPath, denoCacheDir (auto-detected)
 - `--allow-write`: databasePath
-- `--allow-net`: JSR registry (jsr.io)
-- `--allow-env`: MIGRATIONS_DIR
+- `--allow-net`: registry.npmjs.org, esm.sh, jsr.io
+- `--allow-ffi`: unscoped. Deno 2.x path-scoped `--allow-ffi=X` only covers `Deno.dlopen()` path checks; `Deno.UnsafePointer.of()` and related pointer ops — which every real FFI package uses — require unscoped FFI. The quiver loader caches its native library at `{databasePath}/.psrenergy-quiver-cache/libs/{platform}/` on first use; defense-in-depth against arbitrary-DLL loading comes from `--allow-read`/`--allow-write` restricting where user scripts can place files.
+- `--allow-env`: MIGRATIONS_DIR plus Node-compat vars (READABLE_STREAM, GRACEFUL_FS_PLATFORM, TEST_GRACEFUL_FS_GLOBAL_PATCH, NODE_DEBUG, NODE_ENV, BLUEBIRD_*) probed by npm packages
 - `--allow-sys`: always
 
 ### Denied
 - `--deny-run`: no subprocess spawning
-- `--deny-ffi`: no native libraries (QuiverDB is Deno-native)
 
 ## Testing
 

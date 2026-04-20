@@ -9,11 +9,16 @@ import 'package:path/path.dart' as p;
 /// Builds the Deno permission flags for the QuiverSandbox.
 ///
 /// Security settings are hardcoded:
-/// - Network: jsr.io
-/// - Env: MIGRATIONS_DIR only
+/// - Network: registry.npmjs.org, esm.sh, jsr.io
+/// - Env: MIGRATIONS_DIR plus Node-compat vars probed by npm deps
 /// - Sys: allowed
 /// - Run: denied (no subprocess spawning)
-/// - FFI: denied (QuiverDB is Deno-native, no native libraries needed)
+/// - FFI: granted unscoped. Deno 2.x path-scoped `--allow-ffi=X` only covers
+///   `Deno.dlopen()` path checks; `Deno.UnsafePointer.of()` and related pointer
+///   ops — which any real FFI package uses — require unscoped FFI. The
+///   countermeasure is defense-in-depth via `--allow-read`/`--allow-write`:
+///   user scripts can't drop native libs anywhere except databasePath, so the
+///   set of loadable DLLs is constrained by what the runtime can find on disk.
 class PermissionBuilder {
   const PermissionBuilder();
 
@@ -36,10 +41,10 @@ class PermissionBuilder {
     return [
       '--allow-read=${readPaths.join(',')}',
       '--allow-write=$databasePath',
-      '--allow-net=jsr.io',
+      '--allow-net=registry.npmjs.org,esm.sh,jsr.io',
+      '--allow-ffi',
       '--deny-run',
-      '--deny-ffi',
-      '--allow-env=MIGRATIONS_DIR',
+      '--allow-env=MIGRATIONS_DIR,READABLE_STREAM,GRACEFUL_FS_PLATFORM,TEST_GRACEFUL_FS_GLOBAL_PATCH,NODE_DEBUG,BLUEBIRD_DEBUG,BLUEBIRD_WARNINGS,BLUEBIRD_LONG_STACK_TRACES,BLUEBIRD_W_FORGOTTEN_RETURN,NODE_ENV',
       '--allow-sys',
     ];
   }
@@ -69,9 +74,10 @@ class QuiverSandbox {
   /// The sandbox enforces:
   /// - Read access scoped to [databasePath], script directory, and [migrationsPath]
   /// - Write access scoped to [databasePath]
-  /// - Network access scoped to the JSR registry (jsr.io)
-  /// - FFI access denied (QuiverDB is Deno-native)
-  /// - Environment variable access scoped to MIGRATIONS_DIR
+  /// - Network access scoped to registry.npmjs.org, esm.sh, jsr.io
+  /// - FFI access granted unscoped (Deno 2.x path-scoped FFI breaks pointer
+  ///   ops that every real FFI package uses)
+  /// - Environment variable access scoped to MIGRATIONS_DIR and Node-compat vars
   /// - System info access allowed
   /// - Subprocess spawning denied
   Future<int> execute({
